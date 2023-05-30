@@ -1,31 +1,31 @@
-const runAutoSetup = (stream) => {
-    const scriptPath =
-        "/var/lib/cloud9/vention-control/tests/production_qa_scripts/util/autoSetup.py";
+const scripts = [
+    {
+        name: "Auto Setup",
+        socketName: "runSetup",
+        path: "/var/lib/cloud9/vention-control/tests/production_qa_scripts/util/autoSetup.py",
+        args: "auto",
+    },
+    {
+        name: "Fct",
+        socketName: "runFct",
+        path: "/var/lib/cloud9/vention-control/tests/production_qa_scripts/2--fct.py",
+        args: "",
+    },
+];
 
-    console.log("Running setup script...");
-    stream.write(`sudo python3 ${scriptPath} auto\n`);
-};
-
-const runFct = (stream) => {
-    const scriptPath =
-        "/var/lib/cloud9/vention-control/tests/production_qa_scripts/2--fct.py";
-
-    console.log("Running setup script...");
-    stream.write(`sudo python3 ${scriptPath}\n`);
+const runScript = (stream, script) => {
+    console.log(`Running ${script.name} script...`);
+    stream.write(`sudo python3 ${script.path} ${script.args}\n`);
 };
 
 const configureScriptHandlers = (socket, stream, configObject) => {
     // Handle socket events which manipulate the SSH shell
-    socket.on("runSetup", () => {
-        runAutoSetup(stream);
-        configObject.scriptRun = true;
-    });
-
-    // Handle socket events which manipulate the SSH shell
-    socket.on("runFct", () => {
-        runFct(stream);
-        configObject.scriptRun = true;
+    scripts.forEach((script) => {
+        socket.on(script.socketName, () => {
+            runScript(stream, script);
+            configObject.scriptRun = true;
+        });
     });
 };
 
-module.exports = { runAutoSetup, runFct, configureScriptHandlers };
+module.exports = { configureScriptHandlers };
