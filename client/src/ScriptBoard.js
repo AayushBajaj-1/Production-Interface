@@ -7,6 +7,9 @@ import StepContent from "@mui/material/StepContent";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import { LoadingButton } from "@mui/lab";
+import SendIcon from "@mui/icons-material/Send";
+import Convert from "ansi-to-html";
 
 const steps = [
     {
@@ -14,8 +17,8 @@ const steps = [
         description: `Checking EEPROM etc...`,
     },
     {
-        label: "Run Pre Functional ",
-        description: `Checking EEPROM etc...`,
+        label: "Run Functional ",
+        description: `Checking All the unit tests there are`,
     },
     {
         label: "Run the servomotor test",
@@ -30,6 +33,79 @@ const steps = [
               they're running and how to resolve approval issues.`,
     },
 ];
+
+const ScriptBoard = ({
+    socket,
+    loading,
+    setLoading,
+    scriptOutput,
+    setScriptOutput,
+}) => {
+    var convert = new Convert();
+    const [activeStep, setActiveStep] = React.useState(0);
+
+    const handleNext = () => {
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    };
+
+    const handleBack = () => {
+        setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    };
+
+    const handleReset = () => {
+        setActiveStep(0);
+    };
+
+    const startScript = async () => {
+        if (activeStep === 0) {
+            socket.emit("runSetup");
+        } else if (activeStep === 1) {
+            socket.emit("runFct");
+        }
+
+        setScriptOutput("");
+        setLoading(true);
+    };
+
+    React.useEffect(() => {
+        let test = document.getElementById("test");
+        test.innerHTML = convert.toHtml(scriptOutput);
+    }, [scriptOutput]);
+
+    return (
+        <section className="flex flex-col py-10">
+            <h1 className="text-lg font-bold">
+                Scripts To Run during Production
+            </h1>
+            <div className="flex">
+                <VerticalLinearStepper
+                    activeStep={activeStep}
+                    handleNext={handleNext}
+                    handleBack={handleBack}
+                    handleReset={handleReset}
+                />
+                <div className="flex-1 ml-20">
+                    <p className="mb-5">
+                        Click the button below to start running the script
+                    </p>
+                    <LoadingButton
+                        loadingPosition="start"
+                        loading={loading}
+                        startIcon={<SendIcon />}
+                        variant="outlined"
+                        onClick={startScript}
+                    >
+                        Run Script
+                    </LoadingButton>
+                    <pre
+                        id="test"
+                        className="p-3 my-5 text-white bg-[#3e3e42] rounded-xl whitespace-pre-wrap"
+                    ></pre>
+                </div>
+            </div>
+        </section>
+    );
+};
 
 function VerticalLinearStepper({
     activeStep,
@@ -92,58 +168,5 @@ function VerticalLinearStepper({
         </Box>
     );
 }
-const ScriptBoard = () => {
-    const [activeStep, setActiveStep] = React.useState(0);
-
-    const handleNext = () => {
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-    };
-
-    const handleBack = () => {
-        setActiveStep((prevActiveStep) => prevActiveStep - 1);
-    };
-
-    const handleReset = () => {
-        setActiveStep(0);
-    };
-
-    const startScript = async () => {
-        try {
-            await fetch("http://localhost:3000/client/run", {
-                method: "GET",
-            });
-        } catch (err) {
-            console.log(err);
-        }
-    };
-
-    return (
-        <section className="py-10 flex flex-col">
-            <h1 className="text-lg font-bold">
-                Scripts To Run during Production
-            </h1>
-            <div className="flex">
-                <VerticalLinearStepper
-                    activeStep={activeStep}
-                    handleNext={handleNext}
-                    handleBack={handleBack}
-                    handleReset={handleReset}
-                />
-                <div className="ml-20">
-                    <p className="mb-5">
-                        Click the button below to start running the script
-                    </p>
-                    <Button
-                        onClick={startScript}
-                        className="h-[40px]"
-                        variant="contained"
-                    >
-                        Run the Script
-                    </Button>
-                </div>
-            </div>
-        </section>
-    );
-};
 
 export default ScriptBoard;

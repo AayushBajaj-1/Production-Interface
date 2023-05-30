@@ -1,27 +1,59 @@
-import { useState } from "react";
 import { LoadingButton } from "@mui/lab";
-import SendIcon from "@mui/icons-material/Send";
+import React, { useEffect, useState } from "react";
+import socketIOClient from "socket.io-client";
 import ScriptBoard from "./ScriptBoard";
+import SendIcon from "@mui/icons-material/Send";
 
-function App() {
+const ab2str = (arrayBuffer) => {
+    const decoder = new TextDecoder();
+    const decodedString = decoder.decode(arrayBuffer);
+    return decodedString;
+};
+
+const App = () => {
+    const [scriptOutput, setScriptOutput] = useState("");
     const [connected, setConnected] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [socket, setSocket] = useState(null);
 
-    const startConnection = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch("http://localhost:3000/client/open", {
-                method: "GET",
-            });
-            const data = await response.json();
+    useEffect(() => {
+        let tempsocket = socketIOClient("http://localhost:3000");
+
+        tempsocket.on("output", (output) => {
+            console.log(ab2str(output));
+            setScriptOutput((prevOutput) => prevOutput + ab2str(output));
+        });
+
+        tempsocket.on("connected", (output) => {
             setConnected(true);
-        } catch (error) {
-            console.log(error);
-            setConnected(false);
-        }
+        });
 
-        setLoading(false);
-    };
+        tempsocket.on("disconnected", (output) => {
+            setConnected(false);
+        });
+
+        tempsocket.on("input", (output) => {
+            console.log("Received a input now");
+            console.log(ab2str(output));
+
+            let input = prompt(ab2str(output));
+            tempsocket.emit("inputReceived", input);
+        });
+
+        tempsocket.on("error", (error) => {
+            console.log(error);
+        });
+
+        tempsocket.on("completion", () => {
+            setLoading(false);
+        });
+
+        setSocket(tempsocket);
+
+        return () => {
+            tempsocket.disconnect();
+        };
+    }, []);
 
     return (
         <>
@@ -49,14 +81,15 @@ function App() {
                 <h1>Vention Production Interface</h1>
             </nav>
             <main className="p-10">
-                <section className="w-full flex justify-between">
+                <section className="flex justify-between w-full">
                     <div>MachineMotion Connection</div>
                     <LoadingButton
                         loadingPosition="start"
-                        loading={loading}
                         startIcon={<SendIcon />}
                         variant="outlined"
-                        onClick={startConnection}
+                        onClick={() => {
+                            socket.emit("start");
+                        }}
                         disabled={connected}
                         style={{
                             backgroundColor: connected ? "#4caf50" : "#f44336",
@@ -67,10 +100,18 @@ function App() {
                         Connect to MachineMotion
                     </LoadingButton>
                 </section>
-                {!!connected && <ScriptBoard />}
+                {!!connected && (
+                    <ScriptBoard
+                        socket={socket}
+                        scriptOutput={scriptOutput}
+                        loading={loading}
+                        setLoading={setLoading}
+                        setScriptOutput={setScriptOutput}
+                    />
+                )}
             </main>
         </>
     );
-}
+};
 
 export default App;
