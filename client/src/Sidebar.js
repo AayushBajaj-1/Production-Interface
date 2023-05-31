@@ -7,7 +7,7 @@ import StepContent from "@mui/material/StepContent";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { postAssemblyScripts, preAssemblyScripts } from "./eventData";
+import { postAssemblyScripts, preAssemblyScripts } from "eventData";
 
 function Sidebar({ activeStep, handleNext, handleBack, handleReset }) {
     return (

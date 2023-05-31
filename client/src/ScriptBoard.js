@@ -3,7 +3,7 @@ import { LoadingButton } from "@mui/lab";
 import SendIcon from "@mui/icons-material/Send";
 import Convert from "ansi-to-html";
 import Sidebar from "./Sidebar";
-import { postAssemblyScripts, preAssemblyScripts } from "./eventData";
+import { postAssemblyScripts, preAssemblyScripts } from "eventData";
 
 const ScriptBoard = ({
     socket,
