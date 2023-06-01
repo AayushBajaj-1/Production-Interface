@@ -1,8 +1,8 @@
-import React from "react";
-import ScriptBoard from "./ScriptBoard";
-import Topbar from "./Topbar";
-import Navbar from "./Navbar";
-import { useSocket } from "./SocketContext";
+import React, { useEffect } from "react";
+import ScriptBoard from "./components/ScriptBoard";
+import Topbar from "./components/Topbar";
+import Navbar from "./layout/Navbar";
+import { useSocket } from "./context/SocketContext";
 
 const App = () => {
     const { connected } = useSocket();
