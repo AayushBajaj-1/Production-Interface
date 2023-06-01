@@ -70,4 +70,15 @@ const eStopEvents = [
     },
 ];
 
-module.exports = { preAssemblyScripts, postAssemblyScripts, eStopEvents };
+// MQTT Events
+const mqttTopics = {
+    estop: "estop/status",
+    network: "network/discovered",
+};
+
+module.exports = {
+    preAssemblyScripts,
+    postAssemblyScripts,
+    eStopEvents,
+    mqttTopics,
+};

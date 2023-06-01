@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 //@ts-ignore
 import { eStopEvents } from "eventData";
 import socketIOClient, { Socket } from "socket.io-client";
+import { useToast } from "./SnackbarContext";
 
 type ContextProps = {
     socket: Socket | undefined;
@@ -13,8 +14,10 @@ type ContextProps = {
     scriptRunning: boolean;
     setScriptRunning: React.Dispatch<React.SetStateAction<boolean>>;
     sendStart: () => void;
+    testSend: () => void;
     triggerEStop: () => void;
     releaseEStop: () => void;
+    sendInput: (input: string) => void;
 };
 
 const MyContext = createContext<ContextProps>({
@@ -24,9 +27,11 @@ const MyContext = createContext<ContextProps>({
     setScriptOutput: () => {},
     scriptRunning: false,
     setScriptRunning: () => {},
+    testSend: () => {},
     sendStart: () => {},
     triggerEStop: () => {},
     releaseEStop: () => {},
+    sendInput: () => {},
 });
 
 const ab2str = (arrayBuffer: ArrayBuffer) => {
@@ -40,6 +45,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const [connected, setConnected] = useState(false);
     const [scriptOutput, setScriptOutput] = useState("");
     const [scriptRunning, setScriptRunning] = useState(false);
+    const { handleToastOpen } = useToast();
 
     const sendStart = () => {
         socket?.emit("start");
@@ -53,6 +59,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const releaseEStop = () => {
         setScriptRunning(true);
         socket?.emit(eStopEvents[1].socketName);
+    };
+
+    const testSend = () => {
+        socket?.emit("sendScriptToMM");
+    };
+
+    const sendInput = (input: string) => {
+        socket?.emit("inputReceived", input);
     };
 
     useEffect(() => {
@@ -71,12 +85,20 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             setConnected(false);
         });
 
-        tempsocket.on("input", (output) => {
-            console.log("Received a input now");
-            console.log(ab2str(output));
+        tempsocket.on("script:error", () => {
+            console.log("Script error");
+            handleToastOpen({
+                message: "Script error",
+                severity: "error",
+            });
+        });
 
-            let input = prompt(ab2str(output));
-            tempsocket.emit("inputReceived", input);
+        tempsocket.on("script:success", (data) => {
+            console.log("Script success");
+            handleToastOpen({
+                message: "Script success",
+                severity: "success",
+            });
         });
 
         tempsocket.on("error", (error) => {
@@ -85,10 +107,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
         tempsocket.on("completion", () => {
             setScriptRunning(false);
-        });
-
-        tempsocket.on("test", (data) => {
-            console.log(data);
         });
 
         setSocket(tempsocket);
@@ -108,8 +126,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                 scriptRunning,
                 setScriptRunning,
                 sendStart,
+                testSend,
                 triggerEStop,
                 releaseEStop,
+                sendInput,
             }}
         >
             {children}

@@ -18,7 +18,7 @@ const shellHandler = (sshClient, socket) => {
         }
 
         // Handle the running of the scripts
-        configureScriptHandlers(socket, stream, configObject);
+        configureScriptHandlers(sshClient, socket, stream, configObject);
 
         // Handle data received from the SSH shell
         stream.on("data", (data) => {
@@ -42,6 +42,20 @@ const shellDataHandler = (socket, stream, data, configObject) => {
     // If the script is asking for an input
     if (data.indexOf("Input:") !== -1) {
         socket.emit("input", data);
+        return;
+    }
+
+    // Get the success or error of the script
+    if (data.indexOf(`Returned value:`) !== -1) {
+        // get the number from the string
+        if (data.indexOf("1") !== -1) {
+            socket.emit("script:error");
+        }
+
+        if (data.indexOf("0") !== -1) {
+            socket.emit("script:success");
+        }
+
         return;
     }
 

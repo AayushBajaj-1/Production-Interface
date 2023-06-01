@@ -7,7 +7,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3001", // Replace with the URL of your React app
+        origin: "*", // Replace with the URL of your React app
         methods: ["GET", "POST"],
     },
 });

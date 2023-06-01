@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "mqtt": "^4.3.7",
-    "socket.io-client": "^4.6.2",
-    "ws": "^8.13.0"
-  }
-}

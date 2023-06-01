@@ -1,5 +1,6 @@
 const { Client } = require("ssh2");
 const { configureSShHandlers } = require("./sshHandlers");
+const { configureMQTTHandlers } = require("./mqttHandlers");
 require("dotenv").config();
 
 // SSH connection configuration
@@ -22,7 +23,7 @@ const configureIOEventHandlers = (io) => {
 
         // Start a new SSH session on "start" event
         socket.on("start", () => {
-            console.log("Starting SSH connection...");
+            configureMQTTHandlers(socket);
             sshClient.connect(sshConfig);
         });
 
