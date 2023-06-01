@@ -2,17 +2,20 @@ import * as React from "react";
 import { LoadingButton } from "@mui/lab";
 import SendIcon from "@mui/icons-material/Send";
 import Convert from "ansi-to-html";
-import Sidebar from "./Sidebar";
+// @ts-ignore
 import { postAssemblyScripts, preAssemblyScripts } from "eventData";
+import { useSocket } from "./SocketContext";
+import Sidebar from "./Sidebar";
 
-const ScriptBoard = ({
-    socket,
-    loading,
-    setLoading,
-    scriptOutput,
-    setScriptOutput,
-}) => {
-    var convert = new Convert();
+const ScriptBoard = () => {
+    const {
+        socket,
+        scriptRunning,
+        setScriptRunning,
+        scriptOutput,
+        setScriptOutput,
+    } = useSocket();
+
     const [activeStep, setActiveStep] = React.useState(0);
 
     const handleNext = () => {
@@ -28,14 +31,19 @@ const ScriptBoard = ({
     };
 
     const startScript = async () => {
-        socket.emit(postAssemblyScripts[activeStep].socketName);
+        socket?.emit(postAssemblyScripts[activeStep].socketName);
         setScriptOutput("");
-        setLoading(true);
+        setScriptRunning(true);
     };
 
+    const convert = new Convert();
+
     React.useEffect(() => {
-        let test = document.getElementById("test");
+        let test = document.getElementById("test") as HTMLPreElement;
         test.innerHTML = convert.toHtml(scriptOutput);
+        // Remove the ?2004h and ?2004l from the output, cleanup for the data
+        test.innerHTML = test.innerHTML.replace(/\?2004h/g, "");
+        test.innerHTML = test.innerHTML.replace(/\?2004l/g, "");
     }, [scriptOutput]);
 
     return (
@@ -56,7 +64,7 @@ const ScriptBoard = ({
                     </p>
                     <LoadingButton
                         loadingPosition="start"
-                        loading={loading}
+                        loading={scriptRunning}
                         startIcon={<SendIcon />}
                         variant="outlined"
                         onClick={startScript}

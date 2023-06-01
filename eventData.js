@@ -56,7 +56,7 @@ const eStopEvents = [
         name: "E-Stop Triggered",
         socketName: "eStop:trigger",
         command:
-            "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts & python3 -c 'import unitTests.util; unitTests.util.triggerEstop()'",
+            "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts && python3 -c 'import unitTests.util; unitTests.util.triggerEstop()' && cd ~",
         args: "",
         description: "This script will be run when the E-Stop is triggered.",
     },
@@ -64,7 +64,7 @@ const eStopEvents = [
         name: "E-Stop Released",
         socketName: "eStop:reset",
         command:
-            "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts & python3 -c 'import unitTests.util; unitTests.util.resetSystem()'",
+            "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts && python3 -c 'import unitTests.util; unitTests.util.resetSystem()' && cd ~",
         args: "",
         description: "This script will be run when the E-Stop is Released.",
     },

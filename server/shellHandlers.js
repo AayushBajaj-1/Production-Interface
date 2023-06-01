@@ -51,6 +51,7 @@ const shellDataHandler = (socket, stream, data, configObject) => {
         configObject.scriptRun
     ) {
         socket.emit("completion", data);
+        socket.emit("output", data);
         configObject.scriptRun = false;
         return;
     }

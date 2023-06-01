@@ -7,13 +7,26 @@ import StepContent from "@mui/material/StepContent";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+// @ts-ignore
 import { postAssemblyScripts, preAssemblyScripts } from "eventData";
 
-function Sidebar({ activeStep, handleNext, handleBack, handleReset }) {
+export interface SidebarProps {
+    activeStep: number;
+    handleNext: () => void;
+    handleBack: () => void;
+    handleReset: () => void;
+}
+
+function Sidebar({
+    activeStep,
+    handleNext,
+    handleBack,
+    handleReset,
+}: SidebarProps) {
     return (
         <Box sx={{ maxWidth: 400 }}>
             <Stepper activeStep={activeStep} orientation="vertical">
-                {postAssemblyScripts.map((step, index) => (
+                {postAssemblyScripts.map((step: any, index: number) => (
                     <Step key={step.name}>
                         <StepLabel
                             optional={
