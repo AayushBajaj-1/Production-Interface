@@ -7,11 +7,12 @@ import { useSocket } from "./context/SocketContext";
 const App = () => {
     const { connected } = useSocket();
 
+    useEffect(() => {
+        document.title = "Vention Production Interface";
+    }, []);
+
     return (
         <>
-            <head>
-                <title>Production Interface</title>
-            </head>
             <Navbar />
             <main className="p-10">
                 <Topbar />

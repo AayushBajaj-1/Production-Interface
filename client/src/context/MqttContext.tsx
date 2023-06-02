@@ -36,20 +36,25 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
     const [network, setNetwork] = useState();
 
     useEffect(() => {
-        socket?.on("estop", (data: any) => {
-            setEstop(data.message);
+        // Loop over all the mqttTopics and subscribe to each one of them
+        Object.keys(mqttTopics).forEach((key) => {
+            socket?.on(key, (data: any) => {
+                if (key === "estop") {
+                    setEstop(data.message);
+                } else if (key === "network") {
+                    let temp = JSON.parse(data.message);
+                    setNetwork(temp[0]);
+                }
+            });
         });
 
-        socket?.on("network", (data: any) => {
-            let temp = JSON.parse(data.message);
-            setNetwork(temp[0]);
-        });
-
+        // Cleanup for unmount
         return () => {
-            socket?.off("estop");
-            socket?.off("network");
+            Object.keys(mqttTopics).forEach((key) => {
+                socket?.off(key);
+            });
         };
-    }, [socket]);
+    }, [socket, mqttTopics]);
 
     return (
         <MqttContext.Provider
