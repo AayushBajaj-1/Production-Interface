@@ -47,14 +47,20 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
         });
     });
 
-    socket.on("sendScriptToMM", async () => {
+    // Send the script to the MachineMotion and then run it
+    socket.on("sendScriptToMM", async (script) => {
         const filePath = "../scripts/unittests/syncRTC.py";
-        await sendScriptToMM(client, filePath);
-        stream.write(
-            `sudo python3 /var/lib/cloud9/vention-control/${filePath
-                .split("/")
-                .pop()}\n`
-        );
+
+        try {
+            await sendScriptToMM(client, filePath);
+            stream.write(
+                `sudo python3 /var/lib/cloud9/vention-control/${filePath
+                    .split("/")
+                    .pop()}\n`
+            );
+        } catch (err) {
+            console.error("Error occurred while transferring file:", err);
+        }
     });
 };
 
