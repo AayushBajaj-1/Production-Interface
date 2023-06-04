@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "Please ssh into the MachineMotion"
+read -p "Press enter to continue"
 
 # Get the latest log file for the ssh logs
 LOGFILE=$(ls -t /var/log/ | grep auth | head -n 1)

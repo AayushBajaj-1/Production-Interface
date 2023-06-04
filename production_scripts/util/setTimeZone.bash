@@ -1,1 +1,0 @@
-timedatectl set-timezone America/Montreal

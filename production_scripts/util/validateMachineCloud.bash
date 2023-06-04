@@ -1,5 +1,22 @@
+# Directories
+BASE_DIR=/var/lib/cloud9/vention-control
+DIR_UTIL=$BASE_DIR/util
+DIR_LOGS=$BASE_DIR/machineMotion/logs
+
+# Kill the machine-cloud service
+sudo python3 $DIR_UTIL/kill_service.py 'start-machine-cloud-client-daemon-on-machine-motion\|main.js'
+
+# Remove the log files for machine-cloud
+find $DIR_LOGS | grep machine-cloud-machine-motion-client | sudo xargs rm -fr
+
+# Start the machine-cloud service
+sudo bash $DIR_MACHINECLOUD/assets/start-machine-cloud-client-daemon-on-machine-motion.sh
+
+# Wait 5 seconds for the service to start
+sleep 5
+
 # Get the latest log file for machineMotion
-LOGFILE=$(ls -t /var/lib/cloud9/vention-control/machineMotion/logs | grep machine-cloud-machine-motion-client | head -n 1)
+LOGFILE=$(ls -t $DIR_LOGS | grep machine-cloud-machine-motion-client | head -n 1)
 
 # Get the time at which the program was run
 echo "Time at which the client was run:" $(date +"%T")

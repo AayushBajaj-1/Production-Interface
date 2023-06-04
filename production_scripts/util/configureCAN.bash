@@ -1,1 +1,0 @@
-bash /var/lib/cloud9/vention-control/__linux_firmware/__can/configCan.sh
