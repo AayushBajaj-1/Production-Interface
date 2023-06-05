@@ -170,7 +170,7 @@ class TestClass(unittest.TestCase):
     def test_relay(self):
         pass
     
-    def test_end_sensor(self):
+    def test_endSensor(self):
         pass
     
     def test_encoder(self):
@@ -182,8 +182,8 @@ class TestClass(unittest.TestCase):
     def test_EEPROM(self):
         pass
     
-    def test_reset_drive_configuration(self):
-        pass
+    def test_resetDriveConfiguration(self):
+        self.assertTrue(self.resetDriveConfig(), "Drive Configuration was not reset")
 
 if __name__ == '__main__':
     unittest.main()
