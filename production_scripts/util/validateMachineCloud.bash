@@ -1,19 +1,21 @@
-# Directories
 BASE_DIR=/var/lib/cloud9/vention-control
 DIR_UTIL=$BASE_DIR/util
 DIR_LOGS=$BASE_DIR/machineMotion/logs
+DIR_MACHINECLOUD=$BASE_DIR/machine-cloud-machine-motion-client
 
 # Kill the machine-cloud service
-sudo python3 $DIR_UTIL/kill_service.py 'start-machine-cloud-client-daemon-on-machine-motion\|main.js'
+sudo python3 $DIR_UTIL/kill_service.py 'machine-cloud-machine-motion-client/nodejs/bin/node machine-cloud-machine-motion-client/main.js'
 
 # Remove the log files for machine-cloud
 find $DIR_LOGS | grep machine-cloud-machine-motion-client | sudo xargs rm -fr
 
+sleep 2
+
 # Start the machine-cloud service
 sudo bash $DIR_MACHINECLOUD/assets/start-machine-cloud-client-daemon-on-machine-motion.sh
 
-# Wait 5 seconds for the service to start
-sleep 5
+# Wait 10 seconds for the service to start
+sleep 10
 
 # Get the latest log file for machineMotion
 LOGFILE=$(ls -t $DIR_LOGS | grep machine-cloud-machine-motion-client | head -n 1)
@@ -40,7 +42,7 @@ do
 
     # If a time was found then break
     if [[ $var2 != "" ]]; then
-        echo -e "Time found!"
+        echo -e "Time found!" $var2 "\n"
         break
     fi
 
@@ -50,6 +52,7 @@ done
 
 # If no time was found then that means there was no connection to the server
 if [[ $var2 == "" ]]; then
+    echo -e "A recent connection to machineCloud was not found! \n"
     exit 1
 fi
 
