@@ -1,4 +1,4 @@
-import sys, queue,time, builtins, os
+import sys, queue,time, builtins, os, warnings, random, functools
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
 from MachineMotion import *
@@ -52,7 +52,39 @@ def Threads(test,function,drives,logfile,configuration):
         value = q.get()
         results[value[0]-1] = value
     return results
+
+class CustomThread(Thread):
+    def __init__(self,function,drive, queue, *args):
+        super().__init__()
+        self.drive = drive
+        self.queue = queue
+        self.function = function
+        self.args = args
+
+    def run(self):
+        try:
+            # Call the function with the provided arguments
+            self.function(self.drive, self.queue, *self.args)
+        except Exception as e:
+            self.queue.put(e)
+
+def NormalThreads(function, drives, *args):
+    q = queue.Queue()
+    threads = []
+    results = [[0] * 4] * len(drives)
+    for thread, drive in enumerate(drives):
+        t = CustomThread(function,drive, q, *args)
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
     
+    # Check for exceptions raised in threads
+    while not q.empty():
+        exception = q.get()
+        raise exception
+    return results
+
 def printResults(test, values): #values=[drive,PASS,WARNING,ERROR]
     global rep_buffer
     warn = True if "Encoders" in test else False
@@ -117,3 +149,15 @@ def deleteFolder(path):
             os.remove(path + "/" + file)
     else:
       print("The folder does not exist")
+
+def ignore_warnings(test_func):
+    @functools.wraps(test_func)
+    def do_test(self, *args, **kwargs):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ResourceWarning)
+            return test_func(self, *args, **kwargs)
+
+    return do_test
+
+def randomArray(self,min,max,length):
+    return [random.randint(min,max) for i in range(length)]
