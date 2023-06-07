@@ -1,6 +1,8 @@
-import sys, queue,time, builtins, os
+import sys, queue,time, builtins, os, warnings, random, functools
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
+sys.path.append("/var/lib/cloud9/vention-control/sr_config")
+from mm_version import get_n_drives
 from MachineMotion import *
 from logger import *
 from threading import Thread
@@ -52,7 +54,39 @@ def Threads(test,function,drives,logfile,configuration):
         value = q.get()
         results[value[0]-1] = value
     return results
+
+class CustomThread(Thread):
+    def __init__(self,function,drive, queue, *args):
+        super().__init__()
+        self.drive = drive
+        self.queue = queue
+        self.function = function
+        self.args = args
+
+    def run(self):
+        try:
+            # Call the function with the provided arguments
+            self.function(self.drive, self.queue, *self.args)
+        except Exception as e:
+            self.queue.put(e)
+
+def NormalThreads(function, drives, *args):
+    q = queue.Queue()
+    threads = []
+    results = [[0] * 4] * len(drives)
+    for thread, drive in enumerate(drives):
+        t = CustomThread(function,drive, q, *args)
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
     
+    # Check for exceptions raised in threads
+    while not q.empty():
+        exception = q.get()
+        raise exception
+    return results
+
 def printResults(test, values): #values=[drive,PASS,WARNING,ERROR]
     global rep_buffer
     warn = True if "Encoders" in test else False
@@ -117,3 +151,66 @@ def deleteFolder(path):
             os.remove(path + "/" + file)
     else:
       print("The folder does not exist")
+
+# Remove all the configurations used in the test
+def cleanup():
+    # Remove the execution engine data
+    path = "/var/lib/cloud9/mm-execution-engine/LibrarySaveArea"
+    deleteFolder(path)
+    print("Deleted the Configuration Files","green")
+    
+    # Remove the EEPROM files
+    EEPROM_PATH = "./EEPROM"
+    deleteFolder(EEPROM_PATH)
+    print("Deleted the EEPROM files","green")
+    
+    # Reset the network config
+    os.system("sudo cp  /var/lib/cloud9/vention-control/__linux_firmware/__networking/custom_interfaces.json.sample  /var/lib/cloud9/vention-control/__linux_firmware/__networking/custom_interfaces.json")
+    print("Reset all the Network Settings","green")
+
+def ignore_warnings(test_func):
+    @functools.wraps(test_func)
+    def do_test(self, *args, **kwargs):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ResourceWarning)
+            return test_func(self, *args, **kwargs)
+
+    return do_test
+
+def randomArray(min,max,length):
+    return [random.randint(min,max) for i in range(length)]
+
+# Verify the drives
+def verifyDrives():
+    initMQTT()
+    time.sleep(3)
+    nDrives = get_drives()
+    mqttClient = getMQTT()
+    verifyDrives = False
+    while verifyDrives != True:
+        devices = mqttClient["drive"]
+        drives = []
+        sizes = []
+        for i in range(1,nDrives+1):
+            if devices[i]["motor_size"] != "None":
+                drives.append(i)
+                tempoSize = devices[i]["motor_size"]
+                if tempoSize == "small":
+                    sizes.append(MOTOR_SIZE.SMALL)
+                elif tempoSize == "medium":
+                    sizes.append(MOTOR_SIZE.MEDIUM)
+                elif tempoSize == "large":
+                    sizes.append(MOTOR_SIZE.LARGE)
+                else:
+                    print("Drive {} has not a valid value, mqtt says it is a {}".format(i,devices[i]["motor_size"]))
+        if len(drives) != len(sizes): continue
+        reply = input("Machine Motion has detected {} drivers, {} with sizes {}".format(len(drives),drives,sizes) + "\n" + "Is that correct? (y or n) ").lower()
+        if "y" in reply:
+            verifyDrives = True
+            return drives, sizes
+        else:
+            triggerEstop()
+            input("Make sure all motors are connected" + "\n" + "Press Enter to verify the motors again")
+
+def get_drives():
+    return get_n_drives() 
