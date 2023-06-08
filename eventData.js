@@ -183,7 +183,7 @@ const machineMotionBurnInSteps = [
 const postAssemblyScripts = [
     {
         name: "CAN Setup Test",
-        socketName: "runScript:canSetupTest",
+        socketName: "runScript:post_canSetupTest",
         command: `sudo python3 ${PRODUCTION_SCRIPTS_DIR}/1--Can_Setup.py`,
         args: "",
         description:
@@ -192,7 +192,7 @@ const postAssemblyScripts = [
     },
     {
         name: "Pre-Functional Test",
-        socketName: "runScript:preFunctionalTest",
+        socketName: "runScript:post_preFunctionalTest",
         command: `sudo python3 ${PRODUCTION_SCRIPTS_DIR}/2--Fct.py`,
         args: "preFunctional",
         description:
@@ -201,7 +201,7 @@ const postAssemblyScripts = [
     },
     {
         name: "MachineMotion Burn In",
-        socketName: "runScript:burnInTest",
+        socketName: "runScript:post_burnInTest",
         command: `sudo python3 ${PRODUCTION_SCRIPTS_DIR}/3--BurnIn_MachineMotion.py`,
         args: "",
         description: "This script will test the clamp script",
@@ -209,7 +209,7 @@ const postAssemblyScripts = [
     },
     {
         name: "Functional Test",
-        socketName: "runScript:functionalTest",
+        socketName: "runScript:post_functionalTest",
         command: `sudo python3 ${PRODUCTION_SCRIPTS_DIR}/2--Fct.py`,
         args: "functional",
         description:
@@ -222,7 +222,7 @@ const postAssemblyScripts = [
 const preAssemblyScripts = [
     {
         name: "CAN Setup Test (Basic)",
-        socketName: "runScript:canSetupBasicTest",
+        socketName: "runScript:pre_canSetupBasicTest",
         command: `sudo python3 ${PRODUCTION_SCRIPTS_DIR}/1--Can_Setup.py`,
         args: "basic",
         description:
@@ -236,14 +236,14 @@ const eStopEvents = [
     {
         name: "E-Stop Triggered",
         socketName: "eStop:trigger",
-        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.triggerEstop()' && cd ~`,
+        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.triggerEstop()' && cd /var/lib/cloud9/vention-control/`,
         args: "",
         description: "This script will be run when the E-Stop is triggered.",
     },
     {
         name: "E-Stop Released",
         socketName: "eStop:reset",
-        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.resetSystem()' && cd ~`,
+        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.resetSystem()' && cd /var/lib/cloud9/vention-control/`,
         args: "",
         description: "This script will be run when the E-Stop is Released.",
     },

@@ -7,10 +7,9 @@ import StepContent from "@mui/material/StepContent";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-// @ts-ignore
-import { postAssemblyScripts, preAssemblyScripts } from "eventData";
 
 export interface SidebarProps {
+    scripts: any;
     activeStep: number;
     handleNext: () => void;
     handleBack: () => void;
@@ -18,6 +17,7 @@ export interface SidebarProps {
 }
 
 function Sidebar({
+    scripts,
     activeStep,
     handleNext,
     handleBack,
@@ -26,11 +26,11 @@ function Sidebar({
     return (
         <Box sx={{ maxWidth: 400 }}>
             <Stepper activeStep={activeStep} orientation="vertical">
-                {postAssemblyScripts.map((step: any, index: number) => (
+                {scripts.map((step: any, index: number) => (
                     <Step key={step.name}>
                         <StepLabel
                             optional={
-                                index === 2 ? (
+                                index === scripts.length - 1 ? (
                                     <Typography variant="caption">
                                         Last step
                                     </Typography>
@@ -48,8 +48,7 @@ function Sidebar({
                                         onClick={handleNext}
                                         sx={{ mt: 1, mr: 1 }}
                                     >
-                                        {index ===
-                                        postAssemblyScripts.length - 1
+                                        {index === scripts.length - 1
                                             ? "Finish"
                                             : "Continue"}
                                     </Button>
@@ -66,7 +65,7 @@ function Sidebar({
                     </Step>
                 ))}
             </Stepper>
-            {activeStep === postAssemblyScripts.length && (
+            {activeStep === scripts.length && (
                 <Paper square elevation={0} sx={{ p: 3 }}>
                     <Typography>
                         All steps completed - you&apos;re finished

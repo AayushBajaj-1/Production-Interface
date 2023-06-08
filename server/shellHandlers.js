@@ -35,6 +35,11 @@ const shellHandler = (sshClient, socket) => {
             stream.write(`${data}\n`);
         });
 
+        socket.on("stopScript", () => {
+            // Write control + c to the shell
+            stream.write("\x03");
+        });
+
         stream.write("cd /var/lib/cloud9/vention-control\n");
     });
 };

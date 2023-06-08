@@ -108,7 +108,6 @@ const Topbar = () => {
                     >
                         Connect to MachineMotion
                     </LoadingButton>
-                    <button onClick={testSend}>Testing</button>
                 </div>
             </section>
         </>
