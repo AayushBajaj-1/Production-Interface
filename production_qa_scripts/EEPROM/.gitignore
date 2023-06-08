@@ -1,0 +1,5 @@
+# File must be present so that the directory stays
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore

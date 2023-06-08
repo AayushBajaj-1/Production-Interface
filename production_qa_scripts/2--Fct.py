@@ -1,73 +1,40 @@
 import sys, unittest, os, subprocess, time, random, HtmlTestRunner
-from unitTests.util import resetSystem, triggerEstop, deleteFolder, changeInput, ignore_warnings, NormalThreads
+from util import (
+resetSystem, 
+triggerEstop, 
+changeInput, 
+ignore_warnings, 
+NormalThreads, 
+verifyDrives, 
+cleanup, 
+get_drives,
+configAxes )
 from parameterized import parameterized
+from termcolor import cprint
 
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 import MachineMotion as machine 
-sys.path.append("/var/lib/cloud9/vention-control/sr_config")
-from mm_version import get_n_drives
 sys.path.append("/var/lib/cloud9/vention-control/util")
 from kill_service import kill_service
 sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
-from logger import initMQTT, getMQTT
-sys.path.append("/var/lib/cloud9/vention-control/tests/crtp-scripts")
-from util import TestRandomizer
+from logger import initLogger, LOGTYPE, getMQTT, initMQTT
+sys.path.append("/var/lib/cloud9/vention-control/util/EEPROM")
+from VentionEEPROM import getFile
 
 BASE_DIR = "/var/lib/cloud9/vention-control"
 SERVER_DIR = f"{BASE_DIR}/sr_smart-drives"
-PRODUCTION_SCRIPTS_DIR = f"{BASE_DIR}/tests/production_qa_scripts/util"
+PRODUCTION_SCRIPTS_DIR = f"{BASE_DIR}/tests/production_qa_scripts/utils"
 UTIL_DIR = f"{BASE_DIR}/util"
 
-# Remove all the configurations used in the test
-def cleanup():
-    # Remove the execution engine data
-    path = "/var/lib/cloud9/mm-execution-engine/LibrarySaveArea"
-    deleteFolder(path)
-    print("Deleted the Configuration Files","green")
-    
-    # Remove the EEPROM files
-    EEPROM_PATH = "./EEPROM"
-    deleteFolder(EEPROM_PATH)
-    print("Deleted the EEPROM files","green")
-    
-    # Reset the network config
-    os.system("sudo cp  /var/lib/cloud9/vention-control/__linux_firmware/__networking/custom_interfaces.json.sample  /var/lib/cloud9/vention-control/__linux_firmware/__networking/custom_interfaces.json")
-    print("Reset all the Network Settings","green")
-
-# Verify the drives
-def verifyDrives(mqttClient, nDrives):
-    verifyDrives = False
-    while verifyDrives != True:
-        devices = mqttClient["drive"]
-        drives = []
-        sizes = []
-        for i in range(1,nDrives+1):
-            if devices[i]["motor_size"] != "None":
-                drives.append(i)
-                tempoSize = devices[i]["motor_size"]
-                if tempoSize == "small":
-                    sizes.append(machine.MOTOR_SIZE.SMALL)
-                elif tempoSize == "medium":
-                    sizes.append(machine.MOTOR_SIZE.MEDIUM)
-                elif tempoSize == "large":
-                    sizes.append(machine.MOTOR_SIZE.LARGE)
-                else:
-                    print("Drive {} has not a valid value, mqtt says it is a {}".format(i,devices[i]["motor_size"]))
-        if len(drives) != len(sizes): continue
-        reply = input("Machine Motion has detected {} drivers, {} with sizes {}".format(len(drives),drives,sizes) + "\n" + "Is that correct? (y or n) ").lower()
-        if "y" in reply:
-            verifyDrives = True
-            return drives, sizes
-        else:
-            triggerEstop()
-            input("Make sure all motors are connected" + "\n" + "Press Enter to verify the motors again")
-
-def randomArray(min,max,length):
-    return [random.randint(min,max) for i in range(length)]
-
 class CONFIG:
-    DRIVES     = []        # Changed at the start
-    SIZES      = []        # Changed at the start
+    DRIVES     =  []        # Changed at the start
+    SIZES      =  []        # Changed at the start
+    GAINS      =  [machine.MECH_GAIN.timing_belt_150mm_turn]  # Mechanical gain
+    DIRECTIONS =  [machine.DIRECTION.POSITIVE]  # Motor directions
+    CURRENTS   =  [10]  # Motor currents
+    BRAKES     =  [machine.BRAKE.PRESENT]  # Brake presents
+    SPEED      = 2000
+    ACCEL      = 2000
     MAX_DIST   = 416       # Distance in the jig (640 timing jig/416 Andrei's jig)  (mm)
     MIN_DIST   = 10        # Distance in the jig (mm)
     OFFSET     = 10        # Offset distance for the brake
@@ -88,24 +55,33 @@ class TestClass(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
       # Add a custom input to add Input: in front of all the prompts
-      changeInput()
-      # Initialize the mqtt client
-      initMQTT()      
+      changeInput()  
       # Get the number of drives 
-      nDrives = get_n_drives() 
+      nDrives = get_drives()
       hw = machine.MACHINEMOTION_HW_VERSIONS.MMv2OneDrive if nDrives == 1 else machine.MACHINEMOTION_HW_VERSIONS.MMv2
       # Initialize the MachineMotion and mqtt client
       cls.mm = machine.MachineMotion(machineMotionHwVersion = hw)
-      cls.mqtt = getMQTT()
       # Get the drive parameters and verify
-      drives,sizes = verifyDrives(cls.mqtt, nDrives)
+      drives,sizes = verifyDrives()
       CONFIG.DRIVES = drives
       CONFIG.SIZES = sizes
+      configAxes(CONFIG)
+      serialNum = getFile("serial_number.txt")
+      logger,test = initLogger(serialNum, logtype=LOGTYPE.PRODUCTION)  # Get the same report file and append to it
+      cls.logger = logger
       cls.CONFIG = CONFIG
+
+    def aprint(self,msg,color="white"):
+        cprint(msg, color=color, attrs=['bold'])
+        self.logger.info(msg)
+    
+    def header(self,msg,color="white"):
+        cprint(msg, color=color, attrs=['bold'])
+        self.logger.debug(msg)
 
     # Home all the drives
     def moveToHomeAll(self):
-        print("Homing all the drives now!")
+        self.aprint("Homing all the drives now!")
         # Function to move the drive home
         def driveMoveToHome(drive,queue):
             self.mm.moveToHome(drive)
@@ -113,7 +89,7 @@ class TestClass(unittest.TestCase):
         res = NormalThreads(driveMoveToHome, self.CONFIG.DRIVES)
 
     # Reset the Drive configuration
-    def resetDriveConfig(self):
+    def helper_resetDriveConfig(self):
         validation = False
         if self.mm.estopStatus:
             resetSystem()
@@ -129,56 +105,72 @@ class TestClass(unittest.TestCase):
             print("Please run the script again and choose the Reset Drives Configuration test from the menu")
         else:
             validation = True
-            self.cleanup()
-        
+            cleanup()
+
         # Start the smartdrive service again
         os.system(f"sudo bash {SERVER_DIR}/start.sh")
         return validation
 
     # Test for locking the brakes
-    def brakeLockTest(self,drive,queue):
+    def helper_brakeLockTest(self,drive,queue):
         self.mm.setAxisMaxSpeed(drive,self.CONFIG.MIN_SPEED)
-        print(f"Moving the drive {drive} to the middle of the jig")
+        self.aprint(f"Moving the drive {drive} to the middle of the jig")
         self.mm.moveToPosition(drive,self.CONFIG.MAX_DIST*0.5)
         self.mm.waitForMotionCompletion(drive)
-        print(f"Drive {drive} is in the middle of the jig, actual position {self.mm.getActualPositions(drive)}")
+        self.aprint(f"Drive {drive} is in the middle of the jig, actual position {self.mm.getActualPositions(drive)}")
         self.mm.lockBrake(drive, True)
-        print(f"Brake locked on drive {drive}")
+        self.aprint(f"Brake locked on drive {drive}")
         initial_dist = self.mm.getActualPositions(drive)
         time.sleep(1)
         final_dist = self.mm.getActualPositions(drive) 
         distance = final_dist - initial_dist
         self.mm.stopAxis(drive)
+
+        if self.mm.getBrakeState(drive, True) == "locked":
+            self.aprint(f"Brake on drive {drive} is locked")
+            
         self.assertEqual(self.mm.getBrakeState(drive, True), "locked", f"Brake on drive {drive} can not be locked")                        
+        
+        if distance >= self.CONFIG.OFFSET:
+            self.aprint(f"Drive {drive} stopped, initial distance {initial_dist}, final distance {final_dist}")
+
         self.assertLessEqual(distance,self.CONFIG.OFFSET,msg=f"Drive {drive} did not stop, initial distance {initial_dist}, final distance {final_dist}")
     
     # Test for unlocking brakes
-    def brakeUnlockTest(self,drive,queue):
+    def helper_brakeUnlockTest(self,drive,queue):
         deltaMove = 50
         self.mm.unlockBrake(drive, True)
-        print(f"Brake unlocked on drive {drive}")
+        self.aprint(f"Brake unlocked on drive {drive}")
         initial_dist = self.mm.getActualPositions(drive)
-        print(f"Moving the drive {drive} up by 50mm")
+        self.aprint(f"Moving the drive {drive} up by 50mm")
         self.mm.moveRelative(drive,deltaMove)
         self.mm.waitForMotionCompletion(drive)
         final_dist = self.mm.getActualPositions(drive)
-        print(f"Drive {drive} moved by 50mm, actual delta {final_dist - initial_dist}")
+        self.aprint(f"Drive {drive} moved by 50mm, actual delta {final_dist - initial_dist}")
         time.sleep(self.CONFIG.MAXMS)
+
+        if self.mm.getBrakeState(drive, True) == "unlocked":
+            self.aprint(f"Brake on drive {drive} is unlocked")
+        
         self.assertEqual(self.mm.getBrakeState(drive, True), "unlocked", f"Brake on drive {drive} can not be locked")
+        
+        if final_dist - initial_dist >= (deltaMove + self.CONFIG.OFFSET):
+            self.aprint(f"Drive {drive} did moved correctly, initial distance {initial_dist}, final distance {final_dist}")
+
         self.assertAlmostEqual(final_dist,initial_dist,delta=(deltaMove + self.CONFIG.OFFSET),msg=f"Drive {drive} did not move correctly, initial distance {initial_dist}, final distance {final_dist}")
 
     # Check the end sensor functionality for each drive
-    def checkEndSensor(self,drive,queue,sensorType):
+    def helper_checkEndSensor(self,drive,queue,sensorType):
         # Testing the Home sensor
         distanceToMove = self.CONFIG.END_OFFSET if sensorType == "home" else self.CONFIG.MAX_DIST - self.CONFIG.END_OFFSET
-        print(f"Moving the drive {drive} to {distanceToMove}mm")
+        self.aprint(f"Moving the drive {drive} to {distanceToMove}mm")
         self.mm.moveToPosition(drive,distanceToMove)
         self.mm.waitForMotionCompletion(drive)
         endStopSensor = self.CONFIG.HOME[drive - 1] if sensorType == "home" else self.CONFIG.END[drive - 1]
         sensor = self.mm.getEndStopState()[endStopSensor]
-        print(f"Initial {sensorType} Sensor State: {sensor}")
+        self.aprint(f"Initial {sensorType} Sensor State: {sensor}")
         begin = time.time()
-        print(f"Moving the drive {drive} towards the {drive} sensor")
+        self.aprint(f"Moving the drive {drive} towards the {drive} sensor")
         moveSpeed = -self.CONFIG.HOME_SPEED if sensorType == "home" else self.CONFIG.HOME_SPEED
         self.mm.moveContinuous(drive,moveSpeed)
 
@@ -194,38 +186,46 @@ class TestClass(unittest.TestCase):
                 break
         
         self.mm.stopAxis(drive)
+        
+        if "TRIGGERED" not in sensor:
+            self.aprint(f"{sensorType} Sensor for drive {drive} is not working")
+    
         self.assertIn("TRIGGERED",sensor,f"{sensorType} Sensor for drive {drive} is not working")
-        print(f"{sensorType} Sensor for drive {drive} is working fine")
+        self.aprint(f"{sensorType} Sensor for drive {drive} is working fine")
         self.mm.setAxisMaxSpeed(drive, self.CONFIG.MAX_SPEED)
     
     # Testing the encoder on each drive
-    def checkEncoder(self,drive,queue,positionArray):
+    def helper_checkEncoder(self,drive,queue,positionArray):
         for pos in positionArray:
-            print(f"Moving the drive {drive} to {pos}mm")
+            self.aprint(f"Moving the drive {drive} to {pos}mm")
             self.mm.moveToPosition(drive,pos)
             self.mm.waitForMotionCompletion(drive)
             time.sleep(1)
             actual_pos = self.mm.getActualPositions(drive)
-            print(f"Encoder value for drive {drive} is {actual_pos}")
+            self.aprint(f"Encoder value for drive {drive} is {actual_pos}")
+
+            if abs(actual_pos - pos) >= self.CONFIG.OFFSET:
+                self.aprint(f"Encoder for drive {drive} is not working, actual position {actual_pos}, expected position {pos}")
+
             self.assertAlmostEqual(actual_pos,pos,delta=self.CONFIG.OFFSET,msg=f"Encoder for drive {drive} is not working, actual position {actual_pos}, expected position {pos}")
-        print(f"Encoder for drive {drive} is working fine")
+        self.aprint(f"Encoder for drive {drive} is working fine")
 
     @ignore_warnings
     def test_relay(self):
-        print("Testing the relay now !!!")
+        self.header("Testing the relay now !!!", "yellow")
 
         # Home all the drives
         self.moveToHomeAll()
 
         # Check the relay functionality
-        print(f"Moving all the drives to {self.CONFIG.MAX_DIST}mm")
+        self.aprint(f"Moving all the drives to {self.CONFIG.MAX_DIST}mm")
         self.mm.moveToPositionCombined(self.CONFIG.DRIVES,[self.CONFIG.MAX_DIST]*len(self.CONFIG.DRIVES))
         self.mm.waitForMotionCompletion()
         
         time.sleep(1)
         
         initial_dist = self.mm.getActualPositions()
-        print(f"Drives are at {initial_dist}")
+        self.aprint(f"Drives are at {initial_dist}")
         
         print("Killing the controlpower service now!")
         kill_service("controlpower.py")
@@ -238,92 +238,127 @@ class TestClass(unittest.TestCase):
         time.sleep(5)
 
         final_dist = self.mm.getActualPositions()
-        print(f"Drives are at {final_dist}")
+        self.aprint(f"Drives are at {final_dist}")
 
         # Checking the relays for each drive
         for drive in self.CONFIG.DRIVES:
             distance = abs(final_dist[drive] - initial_dist[drive])
+
+            if distance >= self.CONFIG.OFFSET:
+                self.aprint(f"Drive {drive} did not stop, initial distance {initial_dist}, final distance {final_dist}", "red")
+
             self.assertLessEqual(distance,self.CONFIG.OFFSET,msg=f"Drive {drive} did not stop, initial distance {initial_dist}, final distance {final_dist}")
-            print(f"All the relays are working fine for drive {drive}")
+            self.aprint(f"All the relays are working fine for drive {drive}", "green")
 
         resetSystem()
 
         initial_dist = self.mm.getActualPositions()
-        print(f"Drives are at {initial_dist} after reset")
+        self.aprint(f"Drives are at {initial_dist} after reset")
 
         # Checking once again
         for drive in self.CONFIG.DRIVES:
             distance = abs(final_dist[drive] - initial_dist[drive])
+
+            if distance >= self.CONFIG.OFFSET:
+                self.aprint(f"There is a problem with the drivers/motors for drive {drive}, initial distance {initial_dist}, final distance {final_dist}","red")
+
             self.assertLessEqual(distance,self.CONFIG.OFFSET,msg=f"There is a problem with the drivers/motors for drive {drive}, initial distance {initial_dist}, final distance {final_dist}")
-            print(f"The drive/motor {drive} are working perfectly")
+            self.aprint(f"The drive/motor {drive} are working perfectly", "green")
 
     # Testing the RTC functionality
     def test_RTC(self):
+        self.header("Testing the RTC now !!!", "yellow")
+
         cmd=f"sudo python3 {UTIL_DIR}/RTC/syncRTCOneshot.py"
         returned_value = subprocess.call(cmd, shell=True)
+        
+        if returned_value != 0:
+            self.aprint("RTC is not working", "red")
+
         self.assertEqual(returned_value, 0)
 
     # Testing the EEPROM functionality
     def test_EEPROM(self):
+        self.header("Testing the EEPROM now !!!", "yellow")
+        
         cmd=f"sudo python3 {UTIL_DIR}/EEPROM/productionEEPROM.py"
         returned_value = subprocess.call(cmd, shell=True)
+
+        if returned_value != 0:
+            self.aprint("EEPROM is not working, on the productionEEPROM steps", "red")
+
         self.assertEqual(returned_value, 0)
 
         cmd=f"sudo python3 {BASE_DIR}/hardware-version/getHwVersionEEPROM.py"
         returned_value = subprocess.call(cmd, shell=True)
+        if returned_value != 0:
+            self.aprint("EEPROM is not working, getFile is not working", "red")
+
         self.assertEqual(returned_value, 0)
 
     # Testing the Estop
     def test_estop(self):
-      # Check the triggerEstop Functionality
-      triggerStatus = triggerEstop()
-      self.assertEqual(triggerStatus, True, "Estop Triggered")
-      
-      # Check the releaseEstop Functionality
-      resetStatus = resetSystem()
-      self.assertEqual(resetStatus, True, "Estop Released")
+        self.header("Testing the Estop now !!!", "yellow")
+        # Check the triggerEstop Functionality
+        triggerStatus = triggerEstop()
+
+        if triggerStatus == False:
+            self.aprint("Estop Trigger is not working", "red")
+
+        self.assertEqual(triggerStatus, True, "Estop Triggered")
+        
+        # Check the releaseEstop Functionality
+        resetStatus = resetSystem()
+
+        if resetStatus == False:
+            self.aprint("Estop Release is not working", "red")
+
+        self.assertEqual(resetStatus, True, "Estop Released")
 
     # Testing the Brakes
     @ignore_warnings
     def test_brakes(self):
-        print("Testing the brakes now!!!!")
+        self.header("Testing the brakes now!!!!", "yellow")
         # Home all the drives
         self.moveToHomeAll()
         # Check the lock brake functionality
-        print("Testing the brakes now for locking!")
-        NormalThreads(self.brakeLockTest, self.CONFIG.DRIVES)
-        print("Brake Lock Test Passed!!")
-        print("Testing the brakes now for unlocking!")
-        NormalThreads(self.brakeUnlockTest, self.CONFIG.DRIVES)
-        print("Brake UnLock Test Passed!!")
+        self.aprint("Testing the brakes now for locking!")
+        NormalThreads(self.helper_brakeLockTest, self.CONFIG.DRIVES)
+        self.aprint("Brake Lock Test Passed!!", "green")
+        self.aprint("Testing the brakes now for unlocking!")
+        NormalThreads(self.helper_brakeUnlockTest, self.CONFIG.DRIVES)
+        self.aprint("Brake UnLock Test Passed!!", "green")
 
-    @parameterized.expand([
-        ("home",),
-        ("end",),
-    ])
     @ignore_warnings
-    def test_endSensor(self, sensorType):
-        print(f"Now Testing the {sensorType} sensors!")
+    def test_endSensor(self):
+        self.header("Testing the end sensors now!!!!", "yellow")
+        sensorType = "home"
+        self.aprint(f"Testing the home sensors!", "yellow")
         # Home all the drives
         self.moveToHomeAll()
-        NormalThreads(self.checkEndSensor, self.CONFIG.DRIVES,sensorType)
+        NormalThreads(self.helper_checkEndSensor, self.CONFIG.DRIVES,"home")
         self.mm.stopAllMotion()
-        print("The end sensor test passed")
+        self.aprint("The home end sensor test passed", "green")
 
-    @parameterized.expand([
-        ([CONFIG.MAX_DIST * 0.5, CONFIG.MAX_DIST * 0.25,CONFIG.MAX_DIST * 0.75],),
-    ])
+        self.aprint(f"Testing the end sensors!", "yellow")
+        # Home all the drives
+        self.moveToHomeAll()
+        NormalThreads(self.helper_checkEndSensor, self.CONFIG.DRIVES,"end")
+        self.mm.stopAllMotion()
+        self.aprint("The end sensor test passed", "green")
+
     @ignore_warnings
-    def test_encoder(self, positionArray):
-        print("Now Testing the encoder!")
+    def test_encoder(self):
+        self.header("Now Testing the encoder!", "yellow")
         # Home all the drives
         self.moveToHomeAll()
         # Check the encoder
-        NormalThreads(self.checkEncoder, self.CONFIG.DRIVES,positionArray)
+        positionArray = [CONFIG.MAX_DIST * 0.5, CONFIG.MAX_DIST * 0.25,CONFIG.MAX_DIST * 0.75]
+        NormalThreads(self.helper_checkEncoder, self.CONFIG.DRIVES,positionArray)
 
     @ignore_warnings
     def test_io(self):
-        print(f"Now Testing the IOs!")
+        self.header(f"Now Testing the IOs!", "yellow")
         modules = [*self.mm.detectIOModules().values()]
         modules.remove(self.CONFIG.ESTOP_ID)
         
@@ -348,16 +383,25 @@ class TestClass(unittest.TestCase):
                             break
                     actual_value = reading
                     times.append(readTime)
+
+                    if actual_value != value:
+                        self.aprint(f"The IO test failed for module {module} pin {pin} value {value}", "red")
+
                     self.assertEqual(actual_value,value,f"The IO test failed for module {module} pin {pin} value {value}")
-                    print(f"The IO test passed for module {module} pin {pin} value {value}")
+                    self.aprint(f"The IO test passed for module {module} pin {pin} value {value}", "green")
             response = sum(times)/len(times)
             if response < 1000:
-                print(f"The module {module} has an average response of {response} ms")
+                self.aprint(f"The module {module} has an average response of {response} ms", "yellow")
     
     def test_resetDriveConfiguration(self):
-        print(f"Reseting the drive configuration now!")
-        self.assertTrue(self.resetDriveConfig(), "Drive Configuration was not reset")
-        print(f"Drive configuration was reset successfully")
+        self.header(f"Reseting the drive configuration now!")
+        result = self.helper_resetDriveConfig()
+
+        if not result:
+            self.aprint(f"Drive configuration was not reset", "red")
+
+        self.assertTrue(result, "Drive Configuration was not reset")
+        self.aprint(f"Drive configuration was reset successfully")
 
 # Add all the common tests to the suite
 def add_common_tests(self):
@@ -383,15 +427,8 @@ class functionalSuite(unittest.TestSuite):
         add_common_tests(self)                          
         self.addTest(TestClass('test_resetDriveConfiguration'))
 
-class ExitOnFailureRunner(HtmlTestRunner.HTMLTestRunner):
-    def run(self, test):
-        result = super().run(test)
-        if result.failures or result.errors:
-            sys.exit(1)
-        return result
-
 if __name__ == '__main__':
     testType = sys.argv[1] if len(sys.argv) > 1 else "preFunctional"
     suite = functionalSuite() if testType == "functional" else preFunctionalSuite()
-    runner = unittest.TextTestRunner(verbosity=2)
+    runner = unittest.TextTestRunner(verbosity=2,failfast=True)
     result = runner.run(suite)

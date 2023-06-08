@@ -1,6 +1,8 @@
 import sys, queue,time, builtins, os, warnings, random, functools
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
+sys.path.append("/var/lib/cloud9/vention-control/sr_config")
+from mm_version import get_n_drives
 from MachineMotion import *
 from logger import *
 from threading import Thread
@@ -150,6 +152,22 @@ def deleteFolder(path):
     else:
       print("The folder does not exist")
 
+# Remove all the configurations used in the test
+def cleanup():
+    # Remove the execution engine data
+    path = "/var/lib/cloud9/mm-execution-engine/LibrarySaveArea"
+    deleteFolder(path)
+    print("Deleted the Configuration Files","green")
+    
+    # Remove the EEPROM files
+    EEPROM_PATH = "./EEPROM"
+    deleteFolder(EEPROM_PATH)
+    print("Deleted the EEPROM files","green")
+    
+    # Reset the network config
+    os.system("sudo cp  /var/lib/cloud9/vention-control/__linux_firmware/__networking/custom_interfaces.json.sample  /var/lib/cloud9/vention-control/__linux_firmware/__networking/custom_interfaces.json")
+    print("Reset all the Network Settings","green")
+
 def ignore_warnings(test_func):
     @functools.wraps(test_func)
     def do_test(self, *args, **kwargs):
@@ -159,5 +177,40 @@ def ignore_warnings(test_func):
 
     return do_test
 
-def randomArray(self,min,max,length):
+def randomArray(min,max,length):
     return [random.randint(min,max) for i in range(length)]
+
+# Verify the drives
+def verifyDrives():
+    initMQTT()
+    time.sleep(3)
+    nDrives = get_drives()
+    mqttClient = getMQTT()
+    verifyDrives = False
+    while verifyDrives != True:
+        devices = mqttClient["drive"]
+        drives = []
+        sizes = []
+        for i in range(1,nDrives+1):
+            if devices[i]["motor_size"] != "None":
+                drives.append(i)
+                tempoSize = devices[i]["motor_size"]
+                if tempoSize == "small":
+                    sizes.append(MOTOR_SIZE.SMALL)
+                elif tempoSize == "medium":
+                    sizes.append(MOTOR_SIZE.MEDIUM)
+                elif tempoSize == "large":
+                    sizes.append(MOTOR_SIZE.LARGE)
+                else:
+                    print("Drive {} has not a valid value, mqtt says it is a {}".format(i,devices[i]["motor_size"]))
+        if len(drives) != len(sizes): continue
+        reply = input("Machine Motion has detected {} drivers, {} with sizes {}".format(len(drives),drives,sizes) + "\n" + "Is that correct? (y or n) ").lower()
+        if "y" in reply:
+            verifyDrives = True
+            return drives, sizes
+        else:
+            triggerEstop()
+            input("Make sure all motors are connected" + "\n" + "Press Enter to verify the motors again")
+
+def get_drives():
+    return get_n_drives() 
