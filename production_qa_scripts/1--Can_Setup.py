@@ -125,14 +125,14 @@ class TestClass(unittest.TestCase):
     # Reset the Estop
     def test_resetEstop(self):
         self.header("Resetting the Estop")
-        cmd="python3 -c 'import util; util.resetSystem()'"
+        cmd=f"cd {BASE_DIR}/tests/production_qa_scripts/ && python3 -c 'import util; util.resetSystem()' && cd ~"
         returned_value = subprocess.call(cmd, shell=True)
         self.assertEqual(returned_value, 0)
     
     # Trigger the Estop 
     def test_triggerEstop(self):
         self.header("Triggering the Estop")
-        cmd="python3 -c 'import util; util.triggerEstop()'"
+        cmd=f"cd {BASE_DIR}/tests/production_qa_scripts/ && python3 -c 'import util; util.triggerEstop()' && cd ~"
         returned_value = subprocess.call(cmd, shell=True)
         self.assertEqual(returned_value, 0)
 

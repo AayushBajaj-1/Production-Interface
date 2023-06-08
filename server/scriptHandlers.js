@@ -29,6 +29,15 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
             runScript(stream, script);
             configObject.scriptRun = true;
         });
+
+        // Add event handlers for the steps in the script
+        script.steps.forEach((step) => {
+            socket.on(step.socketName, () => {
+                step.args = "";
+                runScript(stream, step);
+                configObject.scriptRun = true;
+            });
+        });
     });
 
     // Handle socket events which manipulate the SSH shell
@@ -36,6 +45,15 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
         socket.on(script.socketName, () => {
             runScript(stream, script);
             configObject.scriptRun = true;
+        });
+
+        // Add event handlers for the steps in the script
+        script.steps.forEach((step) => {
+            socket.on(step.socketName, () => {
+                step.args = "";
+                runScript(stream, step);
+                configObject.scriptRun = true;
+            });
         });
     });
 

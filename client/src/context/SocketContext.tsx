@@ -61,8 +61,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socket?.emit(eStopEvents[1].socketName);
     };
 
+    // const testSend = () => {
+    //     socket?.emit("sendScriptToMM");
+    // };
+
     const testSend = () => {
-        socket?.emit("sendScriptToMM");
+        socket?.emit("runScript:pre_test_firmwareVerification");
     };
 
     const sendInput = (input: string) => {
@@ -88,7 +92,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         tempsocket.on("script:error", () => {
             console.log("Script error");
             handleToastOpen({
-                message: "Script error",
+                message:
+                    "There was a error while running the script. Please check the console for more details.",
                 severity: "error",
             });
         });

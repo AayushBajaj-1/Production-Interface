@@ -1,8 +1,9 @@
 const mqtt = require("mqtt");
 const { mqttTopics } = require("../eventData");
+require("dotenv").config();
 
 const configureMQTTHandlers = (socket) => {
-    const brokerUrl = "tcp://192.168.192.51:1883"; // Replace with your MQTT broker's TCP URL
+    const brokerUrl = `tcp://${process.env.IP}:1883`;
     const client = mqtt.connect(brokerUrl);
 
     client.on("connect", () => {

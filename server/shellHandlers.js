@@ -34,6 +34,8 @@ const shellHandler = (sshClient, socket) => {
         socket.on("inputReceived", (data) => {
             stream.write(`${data}\n`);
         });
+
+        stream.write("cd /var/lib/cloud9/vention-control\n");
     });
 };
 
@@ -46,16 +48,18 @@ const shellDataHandler = (socket, stream, data, configObject) => {
     }
 
     // Get the success or error of the script
-    if (data.indexOf(`Returned value:`) !== -1) {
+    if (data.indexOf(`AssertionError:`) !== -1) {
         // get the number from the string
-        if (data.indexOf("1") !== -1) {
-            socket.emit("script:error");
-        }
+        socket.emit("script:error");
+        socket.emit("output", data);
+        return;
+    }
 
-        if (data.indexOf("0") !== -1) {
-            socket.emit("script:success");
-        }
-
+    // Get the success or error of the script
+    if (data.indexOf(`OK`) !== -1) {
+        // get the number from the string
+        socket.emit("script:success");
+        socket.emit("output", data);
         return;
     }
 

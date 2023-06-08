@@ -33,7 +33,7 @@ const Topbar = () => {
                             </div>
                         </div>
                         <div>
-                            <div className="flex justify-center items-center">
+                            <div className="flex items-center justify-center">
                                 <p className="mr-5">Estop Status:</p>
                                 <svg
                                     height="20"
