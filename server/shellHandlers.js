@@ -40,7 +40,9 @@ const shellHandler = (sshClient, socket) => {
             stream.write("\x03");
         });
 
-        stream.write("cd /var/lib/cloud9/vention-control\n");
+        stream.write(
+            "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts\n"
+        );
     });
 };
 
@@ -52,23 +54,26 @@ const shellDataHandler = (socket, stream, data, configObject) => {
         return;
     }
 
-    // Get the success or error of the script
-    if (data.indexOf(`AssertionError:`) !== -1) {
+    // Get the error of the script
+    if (data.indexOf(`FAILED`) !== -1 && configObject.scriptRun) {
         // get the number from the string
+        socket.emit("completion", data);
         socket.emit("script:error");
         socket.emit("output", data);
+        configObject.scriptRun = false;
         return;
     }
 
-    // Get the success or error of the script
-    if (data.indexOf(`OK`) !== -1) {
+    // Get the success of the script
+    if (data.indexOf(`OK`) !== -1 && configObject.scriptRun) {
         // get the number from the string
+        socket.emit("completion", data);
         socket.emit("script:success");
         socket.emit("output", data);
+        configObject.scriptRun = false;
         return;
     }
 
-    // If the script is finished running ( when finished the shell will print "debian@MachineMotionV2" )
     if (
         data.indexOf(`${process.env.HOSTNAME}@MachineMotionV2`) !== -1 &&
         configObject.scriptRun

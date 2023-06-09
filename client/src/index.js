@@ -10,6 +10,7 @@ import { SocketProvider } from "./context/SocketContext";
 import { MQTTProvider } from "./context/MqttContext";
 import { SnackBarProvider } from "./context/SnackbarContext";
 import { DialogProvider } from "./context/DialogContext";
+import { ConsoleDialogProvider } from "./context/ConsoleContext";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -18,7 +19,9 @@ root.render(
             <SocketProvider>
                 <DialogProvider>
                     <MQTTProvider>
-                        <App />
+                        <ConsoleDialogProvider>
+                            <App />
+                        </ConsoleDialogProvider>
                     </MQTTProvider>
                 </DialogProvider>
             </SocketProvider>

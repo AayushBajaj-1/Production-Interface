@@ -2,19 +2,16 @@ import React from "react";
 import SendIcon from "@mui/icons-material/Send";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import TerminalIcon from "@mui/icons-material/Terminal";
 import { LoadingButton } from "@mui/lab";
 import { useSocket } from "../context/SocketContext";
-import { useMQTT, NetworkProps } from "../context/MqttContext";
+import { useMQTT } from "../context/MqttContext";
+import { useConsole } from "../context/ConsoleContext";
 
 const Topbar = () => {
-    const {
-        triggerEStop,
-        testSend,
-        releaseEStop,
-        sendStart,
-        connected,
-        scriptRunning,
-    } = useSocket();
+    const { triggerEStop, releaseEStop, sendStart, connected, scriptRunning } =
+        useSocket();
+    const { handleDialogOpen } = useConsole();
     const { estop, network } = useMQTT();
 
     return (
@@ -90,6 +87,16 @@ const Topbar = () => {
                                 className="mx-2 text-white bg-yellow-500 disabled:bg-gray-800"
                             >
                                 Release
+                            </LoadingButton>
+                            <LoadingButton
+                                loadingPosition="start"
+                                startIcon={<TerminalIcon />}
+                                variant="outlined"
+                                onClick={() => {
+                                    handleDialogOpen();
+                                }}
+                            >
+                                Open Console
                             </LoadingButton>
                         </>
                     )}

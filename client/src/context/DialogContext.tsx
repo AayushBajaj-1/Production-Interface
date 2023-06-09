@@ -45,6 +45,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleSend = () => {
+        console.log("Sending input: ", input);
         sendInput(input);
         setOpen(false);
         setInput("");

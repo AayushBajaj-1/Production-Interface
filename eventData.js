@@ -236,14 +236,14 @@ const eStopEvents = [
     {
         name: "E-Stop Triggered",
         socketName: "eStop:trigger",
-        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.triggerEstop()' && cd /var/lib/cloud9/vention-control/`,
+        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.triggerEstop()' && cd ${PRODUCTION_SCRIPTS_DIR}/`,
         args: "",
         description: "This script will be run when the E-Stop is triggered.",
     },
     {
         name: "E-Stop Released",
         socketName: "eStop:reset",
-        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.resetSystem()' && cd /var/lib/cloud9/vention-control/`,
+        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.resetSystem()' && cd ${PRODUCTION_SCRIPTS_DIR}/`,
         args: "",
         description: "This script will be run when the E-Stop is Released.",
     },
