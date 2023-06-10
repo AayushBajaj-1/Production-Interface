@@ -2,6 +2,8 @@ require("dotenv").config();
 
 const { configureScriptHandlers } = require("./scriptHandlers");
 
+const cdRun = false;
+
 // Handle the shell
 const shellHandler = (sshClient, socket) => {
     sshClient.shell((err, stream) => {
@@ -40,14 +42,22 @@ const shellHandler = (sshClient, socket) => {
             stream.write("\x03");
         });
 
-        stream.write(
-            "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts\n"
-        );
+        if (!cdRun) {
+            stream.write(
+                "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts\n"
+            );
+        }
     });
 };
 
 // Handling the stream received from the SSH shell
 const shellDataHandler = (socket, stream, data, configObject) => {
+    // If the script is asking for a password enter the password
+    if (data.indexOf(`[sudo] password for ${process.env.HOSTNAME}`) !== -1) {
+        stream.write(`${process.env.PASSWORD}\n`);
+        return;
+    }
+
     // If the script is asking for an input
     if (data.indexOf("Input:") !== -1) {
         socket.emit("input", data);
@@ -81,12 +91,6 @@ const shellDataHandler = (socket, stream, data, configObject) => {
         socket.emit("completion", data);
         socket.emit("output", data);
         configObject.scriptRun = false;
-        return;
-    }
-
-    // If the script is asking for a password enter the password
-    if (data.indexOf(`[sudo] password for ${process.env.HOSTNAME}`) !== -1) {
-        stream.write(`${process.env.PASSWORD}\n`);
         return;
     }
 

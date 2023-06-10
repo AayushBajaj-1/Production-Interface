@@ -5,9 +5,10 @@ const {
 } = require("../eventData.js");
 const { transferFile } = require("./util.js");
 
-const runScript = (stream, script) => {
-    console.log(`Running ${script.name} script...`);
-    stream.write(`${script.command} ${script.args}\n`);
+const runScript = (stream, script, configObject) => {
+    if (!configObject.scriptRun) {
+        stream.write(`${script.command} ${script.args}\n`);
+    }
 };
 
 const sendScriptToMM = async (client, path) => {
@@ -26,7 +27,7 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
     // Handle socket events which manipulate the SSH shell
     preAssemblyScripts.forEach((script) => {
         socket.on(script.socketName, () => {
-            runScript(stream, script);
+            runScript(stream, script, configObject);
             configObject.scriptRun = true;
         });
 
@@ -34,7 +35,7 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
         script.steps.forEach((step) => {
             socket.on(step.socketName, () => {
                 step.args = "";
-                runScript(stream, step);
+                runScript(stream, step, configObject);
                 configObject.scriptRun = true;
             });
         });
@@ -43,7 +44,7 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
     // Handle socket events which manipulate the SSH shell
     postAssemblyScripts.forEach((script) => {
         socket.on(script.socketName, () => {
-            runScript(stream, script);
+            runScript(stream, script, configObject);
             configObject.scriptRun = true;
         });
 
@@ -51,7 +52,7 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
         script.steps.forEach((step) => {
             socket.on(step.socketName, () => {
                 step.args = "";
-                runScript(stream, step);
+                runScript(stream, step, configObject);
                 configObject.scriptRun = true;
             });
         });
@@ -60,7 +61,7 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
     // Handle all the eStop Events
     eStopEvents.forEach((script) => {
         socket.on(script.socketName, () => {
-            runScript(stream, script);
+            runScript(stream, script, configObject);
             configObject.scriptRun = true;
         });
     });

@@ -31,6 +31,7 @@ const ScriptBoard = () => {
         } else {
             setScripts(postAssemblyScripts);
         }
+        setActiveStep(0);
     };
 
     const handleNext = () => {
@@ -53,6 +54,7 @@ const ScriptBoard = () => {
     };
 
     const startSubScript = async (socketName: string) => {
+        console.log("Starting the sub script", socketName);
         handleDialogOpen();
         socket?.emit(socketName);
         setScriptOutput("");

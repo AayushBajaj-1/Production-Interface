@@ -14,17 +14,15 @@ import { ConsoleDialogProvider } from "./context/ConsoleContext";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-    <React.StrictMode>
-        <SnackBarProvider>
-            <SocketProvider>
-                <DialogProvider>
-                    <MQTTProvider>
-                        <ConsoleDialogProvider>
-                            <App />
-                        </ConsoleDialogProvider>
-                    </MQTTProvider>
-                </DialogProvider>
-            </SocketProvider>
-        </SnackBarProvider>
-    </React.StrictMode>
+    <SnackBarProvider>
+        <SocketProvider>
+            <DialogProvider>
+                <MQTTProvider>
+                    <ConsoleDialogProvider>
+                        <App />
+                    </ConsoleDialogProvider>
+                </MQTTProvider>
+            </DialogProvider>
+        </SocketProvider>
+    </SnackBarProvider>
 );
