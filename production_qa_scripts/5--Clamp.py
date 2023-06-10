@@ -5,6 +5,7 @@ sys.path.append("/var/lib/cloud9/vention-control/python-api/")
 sys.path.append("/var/lib/cloud9/vention-control/sr_config")
 sys.path.append("/var/lib/cloud9/vention-control/util/EEPROM")
 sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
+sys.path.append("/var/lib/cloud9/vention-control/tests/production_qa_scripts")
 from ClassifiedToolkit import Toolkit
 from termcolor import cprint
 from kill_service import kill_service

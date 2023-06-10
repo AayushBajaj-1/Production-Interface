@@ -44,10 +44,11 @@ class TestClass(unittest.TestCase):
         self.assertEqual(returned_value, 0)
 
         # Starting both the services
+        cmd=f"sudo bash {BASE_DIR}/sr_control-power/start.sh"
+        returned_value = subprocess.call(cmd, shell=True)  
+        time.sleep(2)
         cmd=f"sudo bash {SERVER_DIR}/start.sh"
         returned_value = subprocess.call(cmd, shell=True)
-        cmd=f"sudo bash {BASE_DIR}/sr_control-power/start.sh"
-        returned_value = subprocess.call(cmd, shell=True)        
 
 
     # Testing if the user recovery generation is working
@@ -125,14 +126,14 @@ class TestClass(unittest.TestCase):
     # Reset the Estop
     def test_resetEstop(self):
         self.header("Resetting the Estop")
-        cmd=f"cd {BASE_DIR}/tests/production_qa_scripts/ && python3 {BASE_DIR}/tests/production_qa_scripts/ -c 'import util; util.resetSystem()' && cd {BASE_DIR}"
+        cmd=f"cd {BASE_DIR}/tests/production_qa_scripts/ && python3 -c 'import util; util.resetSystem()' && cd {BASE_DIR}/tests/production_qa_scripts/"
         returned_value = subprocess.call(cmd, shell=True)
         self.assertEqual(returned_value, 0)
     
     # Trigger the Estop 
     def test_triggerEstop(self):
         self.header("Triggering the Estop")
-        cmd=f"cd {BASE_DIR}/tests/production_qa_scripts/ && python3 -c 'import util; util.triggerEstop()' && cd {BASE_DIR}"
+        cmd=f"cd {BASE_DIR}/tests/production_qa_scripts/ && python3 -c 'import util; util.triggerEstop()' && cd {BASE_DIR}/tests/production_qa_scripts/"
         returned_value = subprocess.call(cmd, shell=True)
         self.assertEqual(returned_value, 0)
 

@@ -1,4 +1,5 @@
-import sys, unittest, os, subprocess, time, random, HtmlTestRunner
+import sys, unittest, os, subprocess, time
+from termcolor import cprint
 from util import (
 resetSystem, 
 triggerEstop, 
@@ -9,8 +10,6 @@ verifyDrives,
 cleanup, 
 get_drives,
 configAxes )
-from parameterized import parameterized
-from termcolor import cprint
 
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 import MachineMotion as machine 
@@ -53,6 +52,7 @@ class CONFIG:
 class TestClass(unittest.TestCase):
     # Runs at the start of the test suite
     @classmethod
+    @ignore_warnings
     def setUpClass(cls):
       # Add a custom input to add Input: in front of all the prompts
       changeInput()  
@@ -235,7 +235,8 @@ class TestClass(unittest.TestCase):
         
         print("Starting the controlpower service now!")
         os.system('sh /var/lib/cloud9/vention-control/sr_control-power/start.sh')
-        time.sleep(5)
+        # To publish the energized topic, we can send a clear error request.
+        time.sleep(15)
 
         final_dist = self.mm.getActualPositions()
         self.aprint(f"Drives are at {final_dist}")
@@ -264,6 +265,9 @@ class TestClass(unittest.TestCase):
 
             self.assertLessEqual(distance,self.CONFIG.OFFSET,msg=f"There is a problem with the drivers/motors for drive {drive}, initial distance {initial_dist}, final distance {final_dist}")
             self.aprint(f"The drive/motor {drive} are working perfectly", "green")
+        
+        cmd=f"curl -X POST http://localhost:8000/smartDrives/error/clear"
+        returned_value = subprocess.call(cmd, shell=True)
 
     # Testing the RTC functionality
     def test_RTC(self):
@@ -306,6 +310,9 @@ class TestClass(unittest.TestCase):
             self.aprint("Estop Trigger is not working", "red")
 
         self.assertEqual(triggerStatus, True, "Estop Triggered")
+        
+        self.aprint("Waiting 15 seconds, to reset the System")
+        time.sleep(15)
         
         # Check the releaseEstop Functionality
         resetStatus = resetSystem()
