@@ -14,7 +14,6 @@ type ContextProps = {
     scriptRunning: boolean;
     setScriptRunning: React.Dispatch<React.SetStateAction<boolean>>;
     sendStart: () => void;
-    testSend: () => void;
     triggerEStop: () => void;
     releaseEStop: () => void;
     sendInput: (input: string) => void;
@@ -27,7 +26,6 @@ const MyContext = createContext<ContextProps>({
     setScriptOutput: () => {},
     scriptRunning: false,
     setScriptRunning: () => {},
-    testSend: () => {},
     sendStart: () => {},
     triggerEStop: () => {},
     releaseEStop: () => {},
@@ -59,14 +57,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const releaseEStop = () => {
         setScriptRunning(true);
         socket?.emit(eStopEvents[1].socketName);
-    };
-
-    // const testSend = () => {
-    //     socket?.emit("sendScriptToMM");
-    // };
-
-    const testSend = () => {
-        socket?.emit("runScript:pre_test_firmwareVerification");
     };
 
     const sendInput = (input: string) => {
@@ -131,7 +121,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                 scriptRunning,
                 setScriptRunning,
                 sendStart,
-                testSend,
                 triggerEStop,
                 releaseEStop,
                 sendInput,

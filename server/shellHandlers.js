@@ -1,12 +1,24 @@
 require("dotenv").config();
-
+const { sendFolderViaSFTP } = require("./util.js");
 const { configureScriptHandlers } = require("./scriptHandlers");
 
-const cdRun = false;
+const scriptsSent = false;
+
+// Send the scripts to the machine motion
+const sendScriptsToMM = async () => {
+    const localFilePath = "../production_qa_scripts/"; // Replace with your local file path
+    const remoteFilePath = `/var/lib/cloud9/vention-control/tests/production_qa_scripts/`;
+
+    try {
+        await sendFolderViaSFTP(localFilePath, remoteFilePath);
+    } catch (err) {
+        console.error("Error occurred while transferring file:", err);
+    }
+};
 
 // Handle the shell
 const shellHandler = (sshClient, socket) => {
-    sshClient.shell((err, stream) => {
+    sshClient.shell(async (err, stream) => {
         // Variable to keep track of the script run status
         let configObject = {
             scriptRun: false,
@@ -17,6 +29,18 @@ const shellHandler = (sshClient, socket) => {
         if (err) {
             stream.end();
             return;
+        }
+
+        // If there is no error then send the scripts to the MM
+        if (!scriptsSent) {
+            try {
+                await sendScriptsToMM();
+                stream.write(
+                    "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts\n"
+                );
+            } catch (err) {
+                console.error("Error occurred while transferring file:", err);
+            }
         }
 
         // Handle the running of the scripts
@@ -41,12 +65,6 @@ const shellHandler = (sshClient, socket) => {
             // Write control + c to the shell
             stream.write("\x03");
         });
-
-        if (!cdRun) {
-            stream.write(
-                "cd /var/lib/cloud9/vention-control/tests/production_qa_scripts\n"
-            );
-        }
     });
 };
 

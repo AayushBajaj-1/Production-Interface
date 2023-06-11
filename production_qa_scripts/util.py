@@ -205,7 +205,6 @@ def verifyDrives():
                     print("Drive {} has not a valid value, mqtt says it is a {}".format(i,devices[i]["motor_size"]))
         if len(drives) != len(sizes): continue
         reply = input("Machine Motion has detected {} drivers, {} with sizes {}".format(len(drives),drives,sizes) + "\n" + "Is that correct? (y or n) ").lower()
-        print(reply)
         if "y" in reply:
             verifyDrives = True
             return drives, sizes

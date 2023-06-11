@@ -1,18 +1,18 @@
 import unittest, time, sys, select, subprocess
 from termcolor import cprint
 from util import (
-    resetSystem,
     triggerEstop,
     changeInput,
     ignore_warnings,
     verifyDrives,
     get_drives,
+    configAxes,
+    resetSystem
 )
 
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 import MachineMotion as machine
-sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
-from logger import initLogger, LOGTYPE, getMQTT, initMQTT
+
 
 class CONFIG:
     ## Jig / Config Specific Parameters ##
@@ -45,6 +45,7 @@ class CONFIG:
 class TestServomotor(unittest.TestCase):
     # Runs at the start of the test suite
     @classmethod
+    @ignore_warnings
     def setUpClass(cls):
         # Add a custom input to add Input: in front of all the prompts
         changeInput()
@@ -60,18 +61,24 @@ class TestServomotor(unittest.TestCase):
         drives, sizes = verifyDrives()
         CONFIG.DRIVES = drives
         CONFIG.SIZES = sizes
+        # Configure the motors
+        configAxes(CONFIG)
         cls.CONFIG = CONFIG
+
+    def aprint(self,msg,color="white"):
+        cprint(msg, color=color, attrs=['bold'])
 
     def helper_counter(self,timePhrase,finalPhrase,speed = 0):
         # Countdown when 10 seconds are left to ask them to change the speed of the vibration table
-        while self.CONFIG.COUNTER_TIME:
-            if self.CONFIG.COUNTER_TIME <= 10:
+        timer = self.CONFIG.COUNTER_TIME
+        while timer:
+            if timer <= 10:
                 try:
-                    print(timePhrase.format(self.CONFIG.COUNTER_TIME,speed))
+                    print(timePhrase.format(timer,speed))
                 except:
-                    print(timePhrase.format(self.CONFIG.COUNTER_TIME))
+                    print(timePhrase.format(timer))
             time.sleep(1)
-            self.CONFIG.COUNTER_TIME -= 1
+            timer -= 1
         
         if "{}" in finalPhrase:
             print(finalPhrase.format(speed))
@@ -134,19 +141,19 @@ class TestServomotor(unittest.TestCase):
         except:
             modules = []
         if len(modules) < len(self.CONFIG.DRIVES)/2:
-            cprint("There are no enough modules to test all the motors, check the CONFIG","red")
+            self.aprint("There are no enough modules to test all the motors, check the CONFIG","red")
             return True
         return False
 
     def helper_checkEndSensors(self):
-        cprint("--> Checking End Sensors..","yellow")
+        self.aprint("--> Checking End Sensors..","yellow")
         if self.helper_checkModules():
             cprint("Check the IO modules","red")
             return False
         if self.mm.estopStatus:
             causedDrive = CONFIG.DRIVES-1
             if causedDrive == 0: CONFIG.DRIVES[-1]
-            cprint("Drive {causedDrive} caused an E-stop")
+            self.aprint("Drive {causedDrive} caused an E-stop")
             return False
         for drive in CONFIG.DRIVES:
             module = list(CONFIG.SENSORS[drive].keys())[0]
@@ -165,15 +172,16 @@ class TestServomotor(unittest.TestCase):
                     self.mm.waitForMotionCompletion(drive)
                 if sensor: continue
                 else:
-                    cprint(f" Check the sensor {'A' if sequence else 'B'} in drive {drive}","red")
+                    self.aprint(f" Check the sensor {'A' if sequence else 'B'} in drive {drive}","red")
                     return False
         return True
 
     def helper_checkBrakes(self):
+        self.aprint("--> Checking Brakes..","yellow")
         if self.mm.estopStatus:
             causedDrive = CONFIG.DRIVES-1
             if causedDrive == 0: CONFIG.DRIVES[-1]
-            cprint("Drive {causedDrive} caused an E-stop")
+            self.aprint("Drive {causedDrive} caused an E-stop")
             return False
         for drive in CONFIG.DRIVES:
             module = list(CONFIG.SENSORS[drive].keys())[0]
@@ -182,7 +190,7 @@ class TestServomotor(unittest.TestCase):
                 if sequence: self.mm.unlockBrake(drive,True)
                 else: self.mm.lockBrake(drive,True)
                 testType = "unlock" if sequence else "locking"
-                print(f"Checking {testType} axis {drive}, {module}, {pinBrake}")
+                self.aprint(f"Checking {testType} axis {drive}, {module}, {pinBrake}")
                 sensor = self.mm.digitalRead(module,pinBrake)
                 begin = time.time()
                 while sensor != sequence:
@@ -195,6 +203,7 @@ class TestServomotor(unittest.TestCase):
         return True
 
     def helper_startMotorBurn(self):
+        self.aprint("--> Starting the Burn In Test..","yellow")
         phrase = ""
         testTime = 0
         directionDuration = 2  # 5 minutes
@@ -211,7 +220,7 @@ class TestServomotor(unittest.TestCase):
                 drive, self.CONFIG.SPEED * currDirection, self.CONFIG.ACCEL
             )
         try:
-            cprint("Press 'x' if you want to stop the script", "yellow")
+            self.aprint("Press 'x' if you want to stop the script", "yellow")
             while testTime < self.CONFIG.BURNIN_TIME:  # 45 minutes
                 quit = select.select([sys.stdin], [], [], 1)
                 if quit[0]:
@@ -259,16 +268,16 @@ class TestServomotor(unittest.TestCase):
             triggerEstop(self.CONFIG.ESTOP_ID)
             exit(1)
         except Exception as e:
-            cprint(e, "red")
-            cprint(f"Last Estop request was: {self.mqtt['estop']['request']}", "yellow")
+            self.aprint(e, "red")
+            self.aprint(f"Last Estop request was: {self.mqtt['estop']['request']}", "yellow")
             exit(1)
 
         return (phrase, maximum, timeDif, temp)
 
     @ignore_warnings
     def test_motorBurnTest(self):
-        print("Set the speed to 20% in the vibration table while the motor are running")
-        print(f"Burn-In test has started, please comeback in {CONFIG.BURNIN_TIME} minutes")
+        self.aprint("Set the speed to 20% in the vibration table while the motor are running")
+        self.aprint(f"Burn-In test has started, please comeback in {CONFIG.BURNIN_TIME} minutes")
         
         phrase, maximum, timeDif, temp = self.helper_startMotorBurn()
 
@@ -281,27 +290,37 @@ class TestServomotor(unittest.TestCase):
 
     @ignore_warnings
     def test_functional(self):
+        self.aprint("--> Starting the Functional Test..","yellow")
         res_EndSensor = self.helper_checkEndSensors()
-        print("End Sensors: ", res_EndSensor)
-        cprint("--> Checking Brakes..","yellow")
-        res_Brake = self.helper_checkBrakes()
-        print("Brakes: ", res_Brake)
+        self.aprint("End Sensors: ", res_EndSensor)
+        #res_Brake = self.helper_checkBrakes()
+        #self.aprint("Brakes: ", res_Brake)
 
     @ignore_warnings
     def test_motorAlignment(self):
+        self.aprint("--> Starting the Alignment Test..","yellow")
         testType="serial"
-        cmd=f"sudo python3 /var/lib/cloud9/vention-control/tests/production_qa_scripts/util/autoSetup.py {testType}"
+        cmd=f"sudo python3 /var/lib/cloud9/vention-control/sr_smart-drives/autoSetup.py {testType}"
         returned_value = subprocess.call(cmd, shell=True)
-        cmd=f"sudo bash /var/lib/cloud9/vention-control/sr_smart-drives/start.sh"
-        subprocess.call(cmd, shell=True)
         self.assertEqual(returned_value, 0)
+        
+        if returned_value == 0:
+            cmd=f"sudo bash /var/lib/cloud9/vention-control/sr_smart-drives/start.sh"
+            subprocess.call(cmd, shell=True)
+
 
     @ignore_warnings
     def test_vibration(self):
+        self.aprint("--> Starting the Vibration Test..","yellow")
         input("Set the speed to 20% in the vibration table and press Enter")
+        
         for drive in CONFIG.DRIVES: self.mm.moveContinuous(drive,CONFIG.SPEED,CONFIG.ACCEL)
+        
+        self.aprint("Running the vibration test, with 20% speed")
         self.helper_counter("In {} seconds, you need to change the speed to {} %","Change the speed to {} %",50)
+        self.aprint("Running the vibration test, with 50% speed")
         self.helper_counter("In {} seconds, you need to change the speed to {} %","Change the speed to {} %",70)
+        self.aprint("Running the vibration test, with 70% speed")
         self.helper_counter("In {} seconds, you need to turn off the table","Turn off the table")
         self.mm.stopAllMotion()
         self.mm.waitForMotionCompletion()

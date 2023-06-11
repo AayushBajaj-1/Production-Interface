@@ -36,7 +36,8 @@ export function ConsoleDialogProvider({
     children: React.ReactNode;
 }) {
     const [open, setOpen] = React.useState(false);
-    const { scriptOutput, socket, setScriptRunning } = useSocket();
+    const { scriptOutput, socket, setScriptRunning, scriptRunning } =
+        useSocket();
 
     const handleDialogClose = () => {
         setOpen(false);
@@ -90,7 +91,9 @@ export function ConsoleDialogProvider({
                     },
                 }}
             >
-                <DialogTitle>Console Output</DialogTitle>
+                <DialogTitle>
+                    Console Output, Status: {scriptRunning ? "Running" : "Idle"}
+                </DialogTitle>
                 <DialogContent>
                     <DialogContentText></DialogContentText>
                     <pre

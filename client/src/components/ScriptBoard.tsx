@@ -8,8 +8,12 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
-// @ts-ignore
-import { postAssemblyScripts, preAssemblyScripts } from "eventData";
+import {
+    postAssemblyScripts,
+    preAssemblyScripts,
+    servoMotorBurnInTestScripts,
+    // @ts-ignore
+} from "eventData";
 
 type stepType = {
     name: string;
@@ -28,8 +32,10 @@ const ScriptBoard = () => {
     const handleChange = (event: any) => {
         if (event.target.value === "pre") {
             setScripts(preAssemblyScripts);
-        } else {
+        } else if (event.target.value === "post") {
             setScripts(postAssemblyScripts);
+        } else if (event.target.value === "servo") {
+            setScripts(servoMotorBurnInTestScripts);
         }
         setActiveStep(0);
     };
@@ -74,6 +80,7 @@ const ScriptBoard = () => {
                 >
                     <MenuItem value={"pre"}>Pre-Assembly</MenuItem>
                     <MenuItem value={"post"}>Post-Assembly</MenuItem>
+                    <MenuItem value={"servo"}>ServoMotor</MenuItem>
                 </Select>
             </FormControl>
             <h1 className="text-lg font-bold">

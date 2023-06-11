@@ -231,6 +231,42 @@ const preAssemblyScripts = [
     },
 ];
 
+// ServoMotor Burn In Test Steps
+const burnInTestScripts = [
+    {
+        name: "Motor Burn In Test",
+        socketName: "runScript:servoburnIn_test_motorBurnTest",
+        command: `sudo python3 -m unittest -k test_motorBurnTest ${PRODUCTION_SCRIPTS_DIR}/4--BurnIn_Servomotor.py`,
+    },
+    {
+        name: "Functional Test",
+        socketName: "runScript:servoburnIn_test_functional",
+        command: `sudo python3 -m unittest -k test_functional ${PRODUCTION_SCRIPTS_DIR}/4--BurnIn_Servomotor.py`,
+    },
+    {
+        name: "Alignment Test",
+        socketName: "runScript:servoburnIn_test_motorAlignment",
+        command: `sudo python3 -m unittest -k test_motorAlignment ${PRODUCTION_SCRIPTS_DIR}/4--BurnIn_Servomotor.py`,
+    },
+    {
+        name: "Vibration Test",
+        socketName: "runScript:servoburnIn_test_test_vibration",
+        command: `sudo python3 -m unittest -k test_vibration ${PRODUCTION_SCRIPTS_DIR}/4--BurnIn_Servomotor.py`,
+    },
+];
+
+// ServoMotor Burn In Test Scripts
+const servoMotorBurnInTestScripts = [
+    {
+        name: "Servo Motor Burn In Test",
+        socketName: "runScript:servo_burnInTest",
+        command: `sudo python3 ${PRODUCTION_SCRIPTS_DIR}/4--BurnIn_Servomotor.py`,
+        args: "",
+        description: "Testing the Junction Box, Burn In Test....",
+        steps: burnInTestScripts,
+    },
+];
+
 // Estop Events
 const eStopEvents = [
     {
@@ -258,6 +294,7 @@ const mqttTopics = {
 module.exports = {
     preAssemblyScripts,
     postAssemblyScripts,
+    servoMotorBurnInTestScripts,
     eStopEvents,
     mqttTopics,
 };
