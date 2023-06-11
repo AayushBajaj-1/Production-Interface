@@ -43,7 +43,7 @@ class TestClass(unittest.TestCase):
         returned_value = subprocess.call(cmd, shell=True)
         self.assertEqual(returned_value, 0)
 
-        # Starting both the services
+        # Starting both the services, first controlpower and then the smartDrive server
         cmd=f"sudo bash {BASE_DIR}/sr_control-power/start.sh"
         returned_value = subprocess.call(cmd, shell=True)  
         time.sleep(2)

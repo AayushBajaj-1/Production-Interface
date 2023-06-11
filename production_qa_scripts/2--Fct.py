@@ -231,11 +231,11 @@ class TestClass(unittest.TestCase):
         kill_service("controlpower.py")
         triggerEstop()
         
-        time.sleep(1) #Time to fall
+        time.sleep(1) # Time to fall, motors would fall if this is not working
         
+        # Start the controlpower service again
         print("Starting the controlpower service now!")
         os.system('sh /var/lib/cloud9/vention-control/sr_control-power/start.sh')
-        # To publish the energized topic, we can send a clear error request.
         time.sleep(15)
 
         final_dist = self.mm.getActualPositions()
@@ -266,6 +266,7 @@ class TestClass(unittest.TestCase):
             self.assertLessEqual(distance,self.CONFIG.OFFSET,msg=f"There is a problem with the drivers/motors for drive {drive}, initial distance {initial_dist}, final distance {final_dist}")
             self.aprint(f"The drive/motor {drive} are working perfectly", "green")
         
+        # Clear the errors to energize the drives as controlpower was restarted
         cmd=f"curl -X POST http://localhost:8000/smartDrives/error/clear"
         returned_value = subprocess.call(cmd, shell=True)
 
