@@ -121,7 +121,8 @@ class TestClass(unittest.TestCase):
     def test_onceInALifetime(self):
         self.header("Running the once in a lifetime script")
         cmd=f"sudo python3 {SERVER_DIR}/onceInALifetimeScript.py"
-        returned_value = subprocess.call(cmd, shell=True)       
+        returned_value = subprocess.call(cmd, shell=True)
+        self.assertEqual(returned_value, 0)
 
     # Reset the Estop
     def test_resetEstop(self):
