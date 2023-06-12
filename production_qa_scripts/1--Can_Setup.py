@@ -150,7 +150,6 @@ class basicSetupSuite(unittest.TestSuite):
     def __init__(self):
         super().__init__()
         # Add individual test cases or test suites
-        self.addTest(TestClass('test_changeGateway'))
         self.addTest(TestClass('test_configureCAN'))
         self.addTest(TestClass('test_EEPROM'))
         self.addTest(TestClass('test_driveAssign'))

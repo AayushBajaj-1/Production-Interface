@@ -5,11 +5,6 @@ const UTIL_DIR = `${BASE_DIR}/util`;
 
 const preAssemblyCanBashSteps = [
     {
-        name: "Change Gateway",
-        socketName: "runScript:pre_test_changeGateway",
-        command: `sudo python3 -m unittest -k test_changeGateway ${PRODUCTION_SCRIPTS_DIR}/1--Can_Setup.py`,
-    },
-    {
         name: "Configure CAN",
         socketName: "runScript:pre_test_configureCAN",
         command: `sudo python3 -m unittest -k test_configureCAN ${PRODUCTION_SCRIPTS_DIR}/1--Can_Setup.py`,
