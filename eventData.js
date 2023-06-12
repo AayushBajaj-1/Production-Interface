@@ -229,14 +229,14 @@ const preAssemblyScripts = [
 // ServoMotor Burn In Test Steps
 const burnInTestScripts = [
     {
-        name: "Motor Burn In Test",
-        socketName: "runScript:servoburnIn_test_motorBurnTest",
-        command: `sudo python3 -m unittest -k test_motorBurnTest ${PRODUCTION_SCRIPTS_DIR}/4--BurnIn_Servomotor.py`,
-    },
-    {
         name: "Functional Test",
         socketName: "runScript:servoburnIn_test_functional",
         command: `sudo python3 -m unittest -k test_functional ${PRODUCTION_SCRIPTS_DIR}/4--BurnIn_Servomotor.py`,
+    },
+    {
+        name: "Motor Burn In Test",
+        socketName: "runScript:servoburnIn_test_motorBurnTest",
+        command: `sudo python3 -m unittest -k test_motorBurnTest ${PRODUCTION_SCRIPTS_DIR}/4--BurnIn_Servomotor.py`,
     },
     {
         name: "Alignment Test",
@@ -280,6 +280,21 @@ const eStopEvents = [
     },
 ];
 
+const services = [
+    {
+        name: "HttpSmartDrive Service",
+        socketName: "service:HttpSmartDrive",
+        startCommand: `sudo bash ${SERVER_DIR}/start.sh`,
+        killCommand: `sudo python3 ${UTIL_DIR}/kill_service.py HttpSmartDriveServer.py`,
+    },
+    {
+        name: "ControlPower Service",
+        socketName: "service:ControlPower",
+        startCommand: `sudo bash ${BASE_DIR}/sr_control-power/start.sh; sleep 15; curl -X POST http://localhost:8000/smartDrives/error/clear`,
+        command: `sudo python3 ${UTIL_DIR}/kill_service.py controlpower.py`,
+    },
+];
+
 // MQTT Events
 const mqttTopics = {
     estop: "estop/status",
@@ -292,4 +307,5 @@ module.exports = {
     servoMotorBurnInTestScripts,
     eStopEvents,
     mqttTopics,
+    services,
 };

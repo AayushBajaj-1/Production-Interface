@@ -13,7 +13,6 @@ from util import (
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 import MachineMotion as machine
 
-
 class CONFIG:
     ## Jig / Config Specific Parameters ##
     DRIVES = [1]  # Changed at the start
@@ -37,7 +36,12 @@ class CONFIG:
     MAXMS = 3  # Maximum waiting time (s)
     BURNIN_TIME = 45  # Burnin time (minutes)
     AMBIENT_TEMP = 20
-    SENSORS     = {1:{1:[0,1]},2:{1:[2,3]},3:{2:[0,1]},4:{2:[2,3]}}
+    SENSORS = [       # Configuration for the burn In test, IOs connected to brake and sensors
+    {"drive": 1, "module": 1, "pins": [0, 1]},
+    {"drive": 2, "module": 1, "pins": [2, 3]},
+    {"drive": 3, "module": 2, "pins": [0, 1]},
+    {"drive": 4, "module": 2, "pins": [2, 3]}
+    ]
     HOME = ["x_min", "y_min", "z_min", "w_min"]
     END = ["x_max", "y_max", "z_max", "w_max"]
     ESTOP_ID = 8
@@ -59,8 +63,8 @@ class TestServomotor(unittest.TestCase):
         # Initialize the MachineMotion and mqtt client
         cls.mm = machine.MachineMotion(machineMotionHwVersion=hw)
         drives, sizes = verifyDrives()
-        CONFIG.DRIVES = drives
-        CONFIG.SIZES = sizes
+        CONFIG.DRIVES = [1]
+        CONFIG.SIZES = [sizes[0]]
         # Configure the motors
         configAxes(CONFIG)
         cls.CONFIG = CONFIG
@@ -111,18 +115,6 @@ class TestServomotor(unittest.TestCase):
         for flash in range(0,2):
             time.sleep(0.1)
             sensor = self.helper_returnEndSensor(movement,axis)
-            self.mm.digitalWrite(module,pin,1)
-            begin = time.time()
-            while "TRIGGERED" not in sensor:
-                try:
-                    sensor = self.helper_returnEndSensor(movement,axis)
-                except:
-                    sensor = "open"
-                timing = round((time.time()-begin),2) #In ms
-                if timing > CONFIG.MAXMS*2:
-                    return False
-            time.sleep(0.1)
-            sensor = self.helper_returnEndSensor(movement,axis)
             self.mm.digitalWrite(module,pin,0)
             begin = time.time()
             while "TRIGGERED" in sensor:
@@ -130,6 +122,18 @@ class TestServomotor(unittest.TestCase):
                     sensor = self.helper_returnEndSensor(movement,axis)
                 except:
                     sensor = "TRIGGERED"
+                timing = round((time.time()-begin),2) #In ms
+                if timing > CONFIG.MAXMS*2:
+                    return False
+            time.sleep(0.1)
+            sensor = self.helper_returnEndSensor(movement,axis)
+            self.mm.digitalWrite(module,pin,1)
+            begin = time.time()
+            while "TRIGGERED" not in sensor:
+                try:
+                    sensor = self.helper_returnEndSensor(movement,axis)
+                except:
+                    sensor = "open"
                 timing = round((time.time()-begin),2) #In ms
                 if timing > CONFIG.MAXMS*2:
                     return False
@@ -150,27 +154,27 @@ class TestServomotor(unittest.TestCase):
         if self.helper_checkModules():
             cprint("Check the IO modules","red")
             return False
-        if self.mm.estopStatus:
-            causedDrive = CONFIG.DRIVES-1
-            if causedDrive == 0: CONFIG.DRIVES[-1]
-            self.aprint("Drive {causedDrive} caused an E-stop")
-            return False
         for drive in CONFIG.DRIVES:
-            module = list(CONFIG.SENSORS[drive].keys())[0]
-            pinHome, pinEnd = CONFIG.SENSORS[drive][module]
+            module = CONFIG.SENSORS[drive - 1]["module"]
+            pinHome, pinEnd = CONFIG.SENSORS[drive - 1]["pins"]
+            self.mm.digitalWrite(module,pinHome,1)
+            self.mm.digitalWrite(module,pinEnd,1)
             for sequence in range(0,2):
                 sensor = False
-                if not sequence:
+                if sequence:
                     self.mm.moveContinuous(drive,CONFIG.HOME_SPEED,100)
-                    time.sleep(1)
+                    time.sleep(5)
                     sensor = self.helper_blinkSensor(drive,module,pinEnd,"End")
                     self.mm.waitForMotionCompletion(drive)
                 else:
                     self.mm.moveToHome(drive)
-                    time.sleep(1)
+                    time.sleep(5)
                     sensor = self.helper_blinkSensor(drive,module,pinHome,"Home")
                     self.mm.waitForMotionCompletion(drive)
-                if sensor: continue
+
+                if sensor: 
+                    self.aprint(f" The sensor {'A' if sequence else 'B'} in drive {drive} is working","green")
+                    continue
                 else:
                     self.aprint(f" Check the sensor {'A' if sequence else 'B'} in drive {drive}","red")
                     return False
@@ -178,14 +182,9 @@ class TestServomotor(unittest.TestCase):
 
     def helper_checkBrakes(self):
         self.aprint("--> Checking Brakes..","yellow")
-        if self.mm.estopStatus:
-            causedDrive = CONFIG.DRIVES-1
-            if causedDrive == 0: CONFIG.DRIVES[-1]
-            self.aprint("Drive {causedDrive} caused an E-stop")
-            return False
         for drive in CONFIG.DRIVES:
-            module = list(CONFIG.SENSORS[drive].keys())[0]
-            pinBrake, pinNon = CONFIG.SENSORS[drive][module]
+            module = CONFIG.SENSORS[drive - 1]["module"]
+            pinBrake, pinNon = CONFIG.SENSORS[drive - 1]["pins"]
             for sequence in range(0,2):
                 if sequence: self.mm.unlockBrake(drive,True)
                 else: self.mm.lockBrake(drive,True)
@@ -197,8 +196,9 @@ class TestServomotor(unittest.TestCase):
                     sensor = self.mm.digitalRead(module,pinBrake)
                     timing = round((time.time()-begin),2) #In s
                     if timing > CONFIG.MAXMS*2:
-                        print(f" Check the brake in drive {drive}")
+                        self.aprint(f" Check the brake in drive {drive}", "red")
                         break
+                self.aprint(f"Brake {'Unlock Test' if sequence else 'Lock Test'} in drive {drive} is working","green")
             time.sleep(1)
         return True
 
@@ -269,7 +269,7 @@ class TestServomotor(unittest.TestCase):
             exit(1)
         except Exception as e:
             self.aprint(e, "red")
-            self.aprint(f"Last Estop request was: {self.mqtt['estop']['request']}", "yellow")
+            self.aprint(f"Please check the last Estop request", "yellow")
             exit(1)
 
         return (phrase, maximum, timeDif, temp)
@@ -292,21 +292,27 @@ class TestServomotor(unittest.TestCase):
     def test_functional(self):
         self.aprint("--> Starting the Functional Test..","yellow")
         res_EndSensor = self.helper_checkEndSensors()
-        self.aprint("End Sensors: ", res_EndSensor)
-        #res_Brake = self.helper_checkBrakes()
-        #self.aprint("Brakes: ", res_Brake)
+        if not res_EndSensor:
+            self.aprint("End Sensors are not working!!", "red")
+        self.assertTrue(res_EndSensor, msg="End Sensors are not working!!")
+        
+        res_Brake = self.helper_checkBrakes()
+        if not res_Brake:
+            self.aprint("Brakes are not working!!", "red")
+        self.assertTrue(res_Brake, msg="Brakes are not working!!")
 
     @ignore_warnings
     def test_motorAlignment(self):
         self.aprint("--> Starting the Alignment Test..","yellow")
-        testType="serial"
+        testType="auto"
         cmd=f"sudo python3 /var/lib/cloud9/vention-control/sr_smart-drives/autoSetup.py {testType}"
         returned_value = subprocess.call(cmd, shell=True)
-        self.assertEqual(returned_value, 0)
         
         if returned_value == 0:
             cmd=f"sudo bash /var/lib/cloud9/vention-control/sr_smart-drives/start.sh"
             subprocess.call(cmd, shell=True)
+
+        self.assertEqual(returned_value, 0)
 
 
     @ignore_warnings

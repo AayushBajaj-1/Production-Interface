@@ -83,10 +83,9 @@ class TestClass(unittest.TestCase):
     def moveToHomeAll(self):
         self.aprint("Homing all the drives now!")
         # Function to move the drive home
-        def driveMoveToHome(drive,queue):
+        for drive in self.CONFIG.DRIVES:
             self.mm.moveToHome(drive)
-            self.mm.waitForMotionCompletion(drive)
-        res = NormalThreads(driveMoveToHome, self.CONFIG.DRIVES)
+        self.mm.waitForMotionCompletion(drive)
 
     # Reset the Drive configuration
     def helper_resetDriveConfig(self):
@@ -123,7 +122,7 @@ class TestClass(unittest.TestCase):
         initial_dist = self.mm.getActualPositions(drive)
         time.sleep(1)
         final_dist = self.mm.getActualPositions(drive) 
-        distance = final_dist - initial_dist
+        distance_moved = final_dist - initial_dist
         self.mm.stopAxis(drive)
 
         if self.mm.getBrakeState(drive, True) == "locked":
@@ -131,11 +130,11 @@ class TestClass(unittest.TestCase):
             
         self.assertEqual(self.mm.getBrakeState(drive, True), "locked", f"Brake on drive {drive} can not be locked")                        
         
-        if distance >= self.CONFIG.OFFSET:
-            self.aprint(f"Drive {drive} stopped, initial distance {initial_dist}, final distance {final_dist}")
+        if abs(distance_moved) >= self.CONFIG.OFFSET:
+            self.aprint(f"Drive {drive} did moved correctly, initial distance {initial_dist}, final distance {final_dist}")
 
-        self.assertLessEqual(distance,self.CONFIG.OFFSET,msg=f"Drive {drive} did not stop, initial distance {initial_dist}, final distance {final_dist}")
-    
+        self.assertAlmostEqual(final_dist,initial_dist,delta=(self.CONFIG.OFFSET),msg=f"Drive {drive} did not move correctly, initial distance {initial_dist}, final distance {final_dist}")
+
     # Test for unlocking brakes
     def helper_brakeUnlockTest(self,drive,queue):
         deltaMove = 50
@@ -146,7 +145,8 @@ class TestClass(unittest.TestCase):
         self.mm.moveRelative(drive,deltaMove)
         self.mm.waitForMotionCompletion(drive)
         final_dist = self.mm.getActualPositions(drive)
-        self.aprint(f"Drive {drive} moved by 50mm, actual delta {final_dist - initial_dist}")
+        distance_moved = final_dist - initial_dist
+        self.aprint(f"Drive {drive} moved by {deltaMove}mm, actual delta {distance_moved}")
         time.sleep(self.CONFIG.MAXMS)
 
         if self.mm.getBrakeState(drive, True) == "unlocked":
@@ -154,10 +154,10 @@ class TestClass(unittest.TestCase):
         
         self.assertEqual(self.mm.getBrakeState(drive, True), "unlocked", f"Brake on drive {drive} can not be locked")
         
-        if final_dist - initial_dist >= (deltaMove + self.CONFIG.OFFSET):
+        if abs(distance_moved - deltaMove) >= self.CONFIG.OFFSET:
             self.aprint(f"Drive {drive} did moved correctly, initial distance {initial_dist}, final distance {final_dist}")
 
-        self.assertAlmostEqual(final_dist,initial_dist,delta=(deltaMove + self.CONFIG.OFFSET),msg=f"Drive {drive} did not move correctly, initial distance {initial_dist}, final distance {final_dist}")
+        self.assertAlmostEqual(distance_moved,deltaMove,delta=(self.CONFIG.OFFSET),msg=f"Drive {drive} did not move correctly, initial distance {initial_dist}, final distance {final_dist}")
 
     # Check the end sensor functionality for each drive
     def helper_checkEndSensor(self,drive,queue,sensorType):
@@ -272,8 +272,13 @@ class TestClass(unittest.TestCase):
 
     # Testing the RTC functionality
     def test_RTC(self):
+        # Change the gateway first
+        self.header("Changing the gateway")
+        cmd=f"sudo bash {PRODUCTION_SCRIPTS_DIR}/changeGateway.bash"
+        returned_value = subprocess.call(cmd, shell=True)
+        self.assertEqual(returned_value, 0)
+        
         self.header("Testing the RTC now !!!", "yellow")
-
         cmd=f"sudo python3 {UTIL_DIR}/RTC/syncRTCOneshot.py"
         returned_value = subprocess.call(cmd, shell=True)
         
@@ -340,7 +345,6 @@ class TestClass(unittest.TestCase):
     @ignore_warnings
     def test_endSensor(self):
         self.header("Testing the end sensors now!!!!", "yellow")
-        sensorType = "home"
         self.aprint(f"Testing the home sensors!", "yellow")
         # Home all the drives
         self.moveToHomeAll()

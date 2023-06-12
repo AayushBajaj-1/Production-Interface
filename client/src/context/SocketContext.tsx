@@ -14,6 +14,7 @@ type ContextProps = {
     scriptRunning: boolean;
     setScriptRunning: React.Dispatch<React.SetStateAction<boolean>>;
     sendStart: () => void;
+    sendService: (socketName: string, data: any) => void;
     triggerEStop: () => void;
     releaseEStop: () => void;
     sendInput: (input: string) => void;
@@ -27,6 +28,7 @@ const MyContext = createContext<ContextProps>({
     scriptRunning: false,
     setScriptRunning: () => {},
     sendStart: () => {},
+    sendService: () => {},
     triggerEStop: () => {},
     releaseEStop: () => {},
     sendInput: () => {},
@@ -47,6 +49,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     const sendStart = () => {
         socket?.emit("start");
+    };
+
+    const sendService = (socketName: string, data: any) => {
+        socket?.emit(socketName, data);
     };
 
     const triggerEStop = () => {
@@ -121,6 +127,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                 scriptRunning,
                 setScriptRunning,
                 sendStart,
+                sendService,
                 triggerEStop,
                 releaseEStop,
                 sendInput,

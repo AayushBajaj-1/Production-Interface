@@ -3,12 +3,20 @@ const {
     postAssemblyScripts,
     servoMotorBurnInTestScripts,
     eStopEvents,
+    services,
 } = require("../eventData.js");
 
 // Run the script on the SSH shell
 const runScript = (stream, script, configObject) => {
     if (!configObject.scriptRun) {
         stream.write(`${script.command} ${script.args}\n`);
+    }
+};
+
+// Run the script on the SSH shell
+const runService = (stream, scriptCommand, configObject) => {
+    if (!configObject.scriptRun) {
+        stream.write(`${scriptCommand}\n`);
     }
 };
 
@@ -61,6 +69,20 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
                 runScript(stream, step, configObject);
                 configObject.scriptRun = true;
             });
+        });
+    });
+
+    // Handle all the service Start Events
+    services.forEach((script) => {
+        socket.on(script.socketName, (data) => {
+            console.log("received data: ", script.socketName, data);
+            if (data === "start") {
+                runService(stream, script.startCommand, configObject);
+                configObject.scriptRun = true;
+            } else if (data === "stop") {
+                runService(stream, script.killCommand, configObject);
+                configObject.scriptRun = true;
+            }
         });
     });
 

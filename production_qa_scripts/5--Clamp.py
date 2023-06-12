@@ -24,7 +24,7 @@ class CONFIG:
     # PARAMETERS
     DRIVES = [1]
     SPEED = 2000  # Speed
-    ACCEL = 2000
+    ACCEL = 1000
     MIN_VOLTAGE = 47  # Minimum voltage
     MAX_VOLTAGE = 54  # Maximum voltage
     MIN_DELTA = 2  # Minimum difference between the maximum and minimum voltage for the clamp to be working.

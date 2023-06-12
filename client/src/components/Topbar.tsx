@@ -8,7 +8,11 @@ import { useSocket } from "../context/SocketContext";
 import { useMQTT } from "../context/MqttContext";
 import { useConsole } from "../context/ConsoleContext";
 
-const Topbar = () => {
+interface Props {
+    toggleServices: () => void;
+}
+
+const Topbar = ({ toggleServices }: Props) => {
     const { triggerEStop, releaseEStop, sendStart, connected, scriptRunning } =
         useSocket();
     const { handleDialogOpen } = useConsole();
@@ -98,23 +102,34 @@ const Topbar = () => {
                             >
                                 Open Console
                             </LoadingButton>
+                            <LoadingButton
+                                loadingPosition="start"
+                                startIcon={<TerminalIcon />}
+                                variant="outlined"
+                                onClick={toggleServices}
+                            >
+                                Toggle Service View
+                            </LoadingButton>
                         </>
                     )}
-
-                    <LoadingButton
-                        loadingPosition="start"
-                        startIcon={<SendIcon />}
-                        variant="outlined"
-                        onClick={sendStart}
-                        disabled={connected}
-                        style={{
-                            backgroundColor: connected ? "#4caf50" : "#f44336",
-                            color: "#fff",
-                            borderColor: connected ? "#4caf50" : "#f44336",
-                        }}
-                    >
-                        Connect to MachineMotion
-                    </LoadingButton>
+                    {!connected && (
+                        <LoadingButton
+                            loadingPosition="start"
+                            startIcon={<SendIcon />}
+                            variant="outlined"
+                            onClick={sendStart}
+                            disabled={connected}
+                            style={{
+                                backgroundColor: connected
+                                    ? "#4caf50"
+                                    : "#f44336",
+                                color: "#fff",
+                                borderColor: connected ? "#4caf50" : "#f44336",
+                            }}
+                        >
+                            Connect to MachineMotion
+                        </LoadingButton>
+                    )}
                 </div>
             </section>
         </>
