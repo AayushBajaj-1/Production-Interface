@@ -189,7 +189,7 @@ def main():
     time.sleep(2)
     triggerEstop(CONFIG.ESTOP_ID)
     # Restart and wait for the HttpSmartDriveServer
-    os.system("sudo bash /var/lib/cloud9/vention-control/sr_smart-drives/start.sh")
+    start_service("HttpSmartDriveServer","sudo bash /var/lib/cloud9/vention-control/sr_smart-drives/start.sh")
     time.sleep(2)
     
     if testResult: exit(0)

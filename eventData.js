@@ -267,14 +267,14 @@ const eStopEvents = [
     {
         name: "E-Stop Triggered",
         socketName: "eStop:trigger",
-        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.triggerEstop()' && cd ${PRODUCTION_SCRIPTS_DIR}/`,
+        command: `python3 -c 'import util; util.triggerEstop()'`,
         args: "",
         description: "This script will be run when the E-Stop is triggered.",
     },
     {
         name: "E-Stop Released",
         socketName: "eStop:reset",
-        command: `cd ${PRODUCTION_SCRIPTS_DIR}/ && python3 -c 'import util; util.resetSystem()' && cd ${PRODUCTION_SCRIPTS_DIR}/`,
+        command: `python3 -c 'import util; util.resetSystem()'`,
         args: "",
         description: "This script will be run when the E-Stop is Released.",
     },
@@ -284,13 +284,13 @@ const services = [
     {
         name: "HttpSmartDrive Service",
         socketName: "service:HttpSmartDrive",
-        startCommand: `sudo bash ${SERVER_DIR}/start.sh`,
+        startCommand: `python3 -c 'import util; util.start_service("HttpSmartDriveServer.py", "sudo bash ${SERVER_DIR}/start.sh")'`,
         killCommand: `sudo python3 ${UTIL_DIR}/kill_service.py HttpSmartDriveServer.py`,
     },
     {
         name: "ControlPower Service",
         socketName: "service:ControlPower",
-        startCommand: `sudo bash ${BASE_DIR}/sr_control-power/start.sh; sleep 15; curl -X POST http://localhost:8000/smartDrives/error/clear`,
+        startCommand: `python3 -c 'import util; util.start_service("controlpower.py", "sudo bash ${BASE_DIR}/sr_control-power/start.sh")'; sleep 15; curl -X POST http://localhost:8000/smartDrives/error/clear`,
         command: `sudo python3 ${UTIL_DIR}/kill_service.py controlpower.py`,
     },
 ];

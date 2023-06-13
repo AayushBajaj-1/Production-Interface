@@ -1,5 +1,6 @@
 import sys, unittest, subprocess, time
 from termcolor import cprint
+from util import start_service
 
 BASE_DIR = "/var/lib/cloud9/vention-control"
 SERVER_DIR = f"{BASE_DIR}/sr_smart-drives"
@@ -44,11 +45,9 @@ class TestClass(unittest.TestCase):
         self.assertEqual(returned_value, 0)
 
         # Starting both the services, first controlpower and then the smartDrive server
-        cmd=f"sudo bash {BASE_DIR}/sr_control-power/start.sh"
-        returned_value = subprocess.call(cmd, shell=True)  
-        time.sleep(2)
-        cmd=f"sudo bash {SERVER_DIR}/start.sh"
-        returned_value = subprocess.call(cmd, shell=True)
+        start_service("controlpower.py",f"sudo bash {BASE_DIR}/sr_control-power/start.sh")
+        time.sleep(5)
+        start_service("HttpSmartDriveServer",f"sudo bash {SERVER_DIR}/start.sh")
 
 
     # Testing if the user recovery generation is working
@@ -106,9 +105,7 @@ class TestClass(unittest.TestCase):
         self.assertEqual(returned_value, 0)
 
         # Start the smartDrive server again
-        cmd=f"sudo bash {SERVER_DIR}/start.sh"
-        subprocess.call(cmd, shell=True)
-
+        start_service("HttpSmartDriveServer",f"sudo bash {SERVER_DIR}/start.sh")
 
     # Generate persistent MAC addresses for the relevant interface
     def test_generateMacAddress(self):

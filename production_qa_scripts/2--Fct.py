@@ -9,7 +9,8 @@ NormalThreads,
 verifyDrives, 
 cleanup, 
 get_drives,
-configAxes )
+configAxes,
+start_service)
 
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 import MachineMotion as machine 
@@ -107,7 +108,7 @@ class TestClass(unittest.TestCase):
             cleanup()
 
         # Start the smartdrive service again
-        os.system(f"sudo bash {SERVER_DIR}/start.sh")
+        start_service("HttpSmartDriveServer",f"sudo bash {SERVER_DIR}/start.sh")
         return validation
 
     # Test for locking the brakes
@@ -235,7 +236,7 @@ class TestClass(unittest.TestCase):
         
         # Start the controlpower service again
         print("Starting the controlpower service now!")
-        os.system('sh /var/lib/cloud9/vention-control/sr_control-power/start.sh')
+        start_service("controlpower.py","sh /var/lib/cloud9/vention-control/sr_control-power/start.sh")
         time.sleep(15)
 
         final_dist = self.mm.getActualPositions()
@@ -367,6 +368,7 @@ class TestClass(unittest.TestCase):
         # Check the encoder
         positionArray = [CONFIG.MAX_DIST * 0.5, CONFIG.MAX_DIST * 0.25,CONFIG.MAX_DIST * 0.75]
         NormalThreads(self.helper_checkEncoder, self.CONFIG.DRIVES,positionArray)
+        self.aprint("The encoder Test Passed", "green")
 
     @ignore_warnings
     def test_io(self):

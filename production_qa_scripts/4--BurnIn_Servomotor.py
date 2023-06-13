@@ -7,7 +7,7 @@ from util import (
     verifyDrives,
     get_drives,
     configAxes,
-    resetSystem
+    start_service
 )
 
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
@@ -307,13 +307,8 @@ class TestServomotor(unittest.TestCase):
         testType="auto"
         cmd=f"sudo python3 /var/lib/cloud9/vention-control/sr_smart-drives/autoSetup.py {testType}"
         returned_value = subprocess.call(cmd, shell=True)
-        
-        if returned_value == 0:
-            cmd=f"sudo bash /var/lib/cloud9/vention-control/sr_smart-drives/start.sh"
-            subprocess.call(cmd, shell=True)
-
+        start_service("HttpSmartDriveServer","sudo bash /var/lib/cloud9/vention-control/sr_smart-drives/start.sh")
         self.assertEqual(returned_value, 0)
-
 
     @ignore_warnings
     def test_vibration(self):
