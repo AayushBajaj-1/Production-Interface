@@ -75,7 +75,6 @@ const configureScriptHandlers = (client, socket, stream, configObject) => {
     // Handle all the service Start Events
     services.forEach((script) => {
         socket.on(script.socketName, (data) => {
-            console.log("received data: ", script.socketName, data);
             if (data === "start") {
                 runService(stream, script.startCommand, configObject);
                 configObject.scriptRun = true;

@@ -10,14 +10,14 @@ verifyDrives,
 cleanup, 
 get_drives,
 configAxes,
-start_service)
+)
 
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 import MachineMotion as machine 
 sys.path.append("/var/lib/cloud9/vention-control/util")
-from kill_service import kill_service
+from kill_service import kill_service, start_service
 sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
-from logger import initLogger, LOGTYPE, getMQTT, initMQTT
+from logger import initLogger, LOGTYPE
 sys.path.append("/var/lib/cloud9/vention-control/util/EEPROM")
 from VentionEEPROM import getFile
 

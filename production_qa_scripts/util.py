@@ -2,13 +2,11 @@ import sys, queue,time, builtins, os, warnings, random, functools
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
 sys.path.append("/var/lib/cloud9/vention-control/sr_config")
-sys.path.append("/var/lib/cloud9/vention-control/util")
 from mm_version import get_n_drives
 from MachineMotion import *
 from logger import *
 from threading import Thread
 from termcolor import cprint
-from kill_service import find_service
 
 ##########################  ONLY CHANGE PARAMETERS AND TESTS HERE ##########################
 
@@ -217,14 +215,3 @@ def verifyDrives():
 # Get number of drives
 def get_drives():
     return get_n_drives()
-
-# Start the service if not running
-def start_service(service_name, command):
-    process = find_service(service_name)
-    if len(process) >= 1 and process != ['']:
-        print(f"{service_name} is already running")
-        return False
-    else:
-        os.system(command)
-        print(f"Started the {service_name}")
-        return True

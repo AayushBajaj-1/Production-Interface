@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import * as React from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -18,12 +17,6 @@ type ContextProps = {
     handleDialogClose: () => void;
 };
 
-const ab2str = (arrayBuffer: ArrayBuffer) => {
-    const decoder = new TextDecoder();
-    const decodedString = decoder.decode(arrayBuffer);
-    return decodedString;
-};
-
 const ConsoleDialogContext = createContext<ContextProps>({
     open: false,
     handleDialogOpen: () => {},
@@ -35,7 +28,7 @@ export function ConsoleDialogProvider({
 }: {
     children: React.ReactNode;
 }) {
-    const [open, setOpen] = React.useState(false);
+    const [open, setOpen] = useState(false);
     const { scriptOutput, socket, setScriptRunning, scriptRunning } =
         useSocket();
 
@@ -61,14 +54,16 @@ export function ConsoleDialogProvider({
         let preElement = document.getElementById("test");
         if (preElement) {
             preElement.innerHTML = text;
-            preElement.parentElement?.parentElement?.scrollTo({
-                top: preElement.parentElement?.parentElement?.scrollHeight,
+            preElement.parentElement?.scrollTo({
+                top:
+                    (preElement.parentElement?.parentElement
+                        ?.scrollHeight as number) + 1000,
                 behavior: "smooth",
             });
         }
     };
 
-    React.useEffect(() => {
+    useEffect(() => {
         getOutput();
     }, [scriptOutput]);
 

@@ -8,6 +8,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { useSocket } from "./SocketContext";
+import Convert from "ansi-to-html";
 
 type ContextProps = {
     open: boolean;
@@ -38,6 +39,10 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
         setMessage(message as any);
     };
 
+    const handleOpen = () => {
+        setOpen(true);
+    };
+
     const handleDialogClose = () => {
         sendInput("");
         setOpen(false);
@@ -53,7 +58,16 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         socket?.on("input", (output) => {
-            handleDialogOpen(ab2str(output));
+            const convert = new Convert();
+            let text = convert.toHtml(ab2str(output));
+            const element = document.querySelector(
+                "#inputContext .MuiDialogContent-root .MuiTypography-root"
+            );
+            console.log("Element: ", element);
+            if (element) {
+                element.innerHTML = text;
+            }
+            handleOpen();
         });
 
         return () => {
@@ -70,7 +84,12 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
             }}
         >
             {children}
-            <Dialog open={open} onClose={handleDialogClose}>
+            <Dialog
+                keepMounted
+                id="inputContext"
+                open={open}
+                onClose={handleDialogClose}
+            >
                 <DialogTitle>Input Requested</DialogTitle>
                 <DialogContent>
                     <DialogContentText>{message}</DialogContentText>

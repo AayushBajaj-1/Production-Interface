@@ -1,6 +1,8 @@
 import sys, unittest, subprocess, time
 from termcolor import cprint
-from util import start_service
+
+sys.path.append("/var/lib/cloud9/vention-control/util")
+from kill_service import start_service
 
 BASE_DIR = "/var/lib/cloud9/vention-control"
 SERVER_DIR = f"{BASE_DIR}/sr_smart-drives"

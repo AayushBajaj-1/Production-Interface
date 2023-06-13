@@ -7,11 +7,12 @@ from util import (
     verifyDrives,
     get_drives,
     configAxes,
-    start_service
 )
 
 sys.path.append("/var/lib/cloud9/vention-control/python-api")
 import MachineMotion as machine
+sys.path.append("/var/lib/cloud9/vention-control/util")
+from kill_service import start_service
 
 class CONFIG:
     ## Jig / Config Specific Parameters ##
@@ -115,18 +116,6 @@ class TestServomotor(unittest.TestCase):
         for flash in range(0,2):
             time.sleep(0.1)
             sensor = self.helper_returnEndSensor(movement,axis)
-            self.mm.digitalWrite(module,pin,0)
-            begin = time.time()
-            while "TRIGGERED" in sensor:
-                try:
-                    sensor = self.helper_returnEndSensor(movement,axis)
-                except:
-                    sensor = "TRIGGERED"
-                timing = round((time.time()-begin),2) #In ms
-                if timing > CONFIG.MAXMS*2:
-                    return False
-            time.sleep(0.1)
-            sensor = self.helper_returnEndSensor(movement,axis)
             self.mm.digitalWrite(module,pin,1)
             begin = time.time()
             while "TRIGGERED" not in sensor:
@@ -134,6 +123,18 @@ class TestServomotor(unittest.TestCase):
                     sensor = self.helper_returnEndSensor(movement,axis)
                 except:
                     sensor = "open"
+                timing = round((time.time()-begin),2) #In ms
+                if timing > CONFIG.MAXMS*2:
+                    return False
+            time.sleep(0.1)
+            sensor = self.helper_returnEndSensor(movement,axis)
+            self.mm.digitalWrite(module,pin,0)
+            begin = time.time()
+            while "TRIGGERED" in sensor:
+                try:
+                    sensor = self.helper_returnEndSensor(movement,axis)
+                except:
+                    sensor = "TRIGGERED"
                 timing = round((time.time()-begin),2) #In ms
                 if timing > CONFIG.MAXMS*2:
                     return False
@@ -157,8 +158,8 @@ class TestServomotor(unittest.TestCase):
         for drive in CONFIG.DRIVES:
             module = CONFIG.SENSORS[drive - 1]["module"]
             pinHome, pinEnd = CONFIG.SENSORS[drive - 1]["pins"]
-            self.mm.digitalWrite(module,pinHome,1)
-            self.mm.digitalWrite(module,pinEnd,1)
+            self.mm.digitalWrite(module,pinHome,0)
+            self.mm.digitalWrite(module,pinEnd,0)
             for sequence in range(0,2):
                 sensor = False
                 if sequence:
@@ -182,6 +183,7 @@ class TestServomotor(unittest.TestCase):
 
     def helper_checkBrakes(self):
         self.aprint("--> Checking Brakes..","yellow")
+        error = False
         for drive in CONFIG.DRIVES:
             module = CONFIG.SENSORS[drive - 1]["module"]
             pinBrake, pinNon = CONFIG.SENSORS[drive - 1]["pins"]
@@ -197,10 +199,10 @@ class TestServomotor(unittest.TestCase):
                     timing = round((time.time()-begin),2) #In s
                     if timing > CONFIG.MAXMS*2:
                         self.aprint(f" Check the brake in drive {drive}", "red")
-                        break
+                        error = True
                 self.aprint(f"Brake {'Unlock Test' if sequence else 'Lock Test'} in drive {drive} is working","green")
             time.sleep(1)
-        return True
+        return not error
 
     def helper_startMotorBurn(self):
         self.aprint("--> Starting the Burn In Test..","yellow")

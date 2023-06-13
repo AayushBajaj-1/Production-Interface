@@ -8,12 +8,11 @@ sys.path.append("/var/lib/cloud9/vention-control/tests/logger/lib")
 sys.path.append("/var/lib/cloud9/vention-control/tests/production_qa_scripts")
 from ClassifiedToolkit import Toolkit
 from termcolor import cprint
-from kill_service import kill_service
+from kill_service import kill_service, start_service
 from VentionEEPROM import getFile
 from mm_version import get_n_drives
 from logger import *
 from util import *
-
 
 def aprint(logger, msg, color):
     cprint(msg, color)
